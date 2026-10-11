@@ -1,20 +1,13 @@
-# Cenários originais
+# Arte de Último Espetáculo
 
-Os dois cenários foram gerados com a ferramenta integrada de geração de imagens e codificados em WebP para o jogo. Os objetos interativos, lanterna, partículas, flores e névoa são desenhados em tempo real pelo canvas.
+Imagens criadas com a ferramenta integrada `image_gen.imagegen` e codificadas em WebP. O cenário navegável é 3D em WebGL: arquitetura, materiais deteriorados, móveis, brinquedos e iluminação são criados pelo código. A ilustração da mansão aparece no lobby e na abertura; o palhaço é um recorte com transparência que se move no espaço 3D e aparece na captura.
 
-## Trilha Noturna
+Arquivos: `src/assets/scenes/haunted-mansion.webp` (abertura e lobby), `src/assets/scenes/mansion-clown.webp` (personagem com transparência).
 
-Arquivo: `src/assets/scenes/night-forest.webp`
+## Prompt final da mansão
 
-Prompt final:
+Cinematic photorealistic horror game key art, landscape 3:2 frame: inside an abandoned Victorian mansion used by a sinister circus troupe. First-person eye-level view down a decaying long dark hallway with peeling muted teal wallpaper, dirty wainscoting, crooked portraits, old wooden plank floor, cracked ceiling, faint cold moonlight through side windows, a single blood-red lamp far away. Abandoned porcelain dolls, a rocking horse and a dented jack-in-the-box on the floor edges. Far down the hall, barely visible, a tall menacing circus clown in a worn burgundy coat and cracked ivory mask stands still in darkness. No gore, no blood, no text, no UI. An angled flashlight beam reveals dust and worn wood in foreground. Deep photographic texture, atmospheric chiaroscuro, real abandoned mansion proportions, disturbing beautiful horror film cinematography, no cartoon.
 
-Use case: stylized-concept. Asset type: original game environment background for a playable overhead exploration game. Create a beautiful atmospheric nocturnal forest clearing seen from a high almost top-down camera, wide landscape 1536x1024 composition. Mature cinematic painted 3D game look, detailed ferns and gnarled pine trunks around the outer border, moonlit wet forest floor, subdued blue-green slate palette, silver mist, tactile moss and stones, delicate volumetric shafts of moonlight. The interior central 80% must be a continuous open walkable clearing with gently winding luminous worn paths across the ground; trees and impassable rocks restricted to the outer edges. Subtle ruined stone arch at the far upper right edge, grounded in the scene. Restrained ominous mystery with inviting rich detail, clearly readable ground, premium indie exploration game atmosphere. No people, no UI, no lanterns, no floating orbs, no monsters, no symbols, no text, no watermark. Do not create a mockup. The code will add all animated entities and lights. Landscape, atmospheric layered depth but coherent near-overhead ground perspective.
+## Prompt final do personagem
 
-## Jardim de Luz
-
-Arquivo: `src/assets/scenes/moon-garden.webp`
-
-Prompt final:
-
-Use case: stylized-concept. Asset type: background landscape for a relaxing interactive light garden game. Beautiful contemplative bioluminescent pond at blue hour, wide landscape 1536x1024 composition, luxurious cinematic digital matte painting with subtle 3D tactile depth. Low view over calm dark indigo water taking up lower 65% of the scene, reflecting a delicate crescent moon and tiny distant stars, organic mossy banks and fine ferns framing the lower corners, slender willow branches around top corners, distant serene mountains, blue and violet mist, luminous teal flowers restricted to the banks. Quiet mysterious wonder, not scary, exquisite light and reflections, soft gradients and realistic materials. Enough clear open central water for glowing animated trails, ripples, fireflies and lotus flowers drawn by code. No people, no UI, no interface, no text, no watermark, no existing bright fireflies or lotus blooms at center. Mature premium indie game environment art, no cartoon mascots, no clipart. Landscape and spacious with peaceful spacious composition.
-
+Create a single photorealistic cinematic survival-horror game enemy cutout on a transparent background, full body visible head to shoes, vertical portrait composition. A tall unnaturally thin adult sinister circus clown in a decaying Victorian burgundy and black ringmaster coat, ragged ruffled collar, antique dirty cracked ivory porcelain clown mask with deep black eye sockets, faint amber pupils, cruel painted thin crimson grin, sparse dark hair, long gloved hands holding an antique blunt-looking stage knife down at his side. No blood, no gore, no wounds, no text. Disturbingly still, slightly hunched forward, lifelike aged fabrics and dusty weathered surfaces, subtle cold frontal side lighting so readable in a dark 3D game. Feet firmly planted, arms separated enough to read silhouette. Transparent background, isolated clean silhouette, not cartoon, not toy-like, not cute. Front-facing game billboard view, subject fills 88 percent of frame height.

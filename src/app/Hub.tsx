@@ -18,8 +18,8 @@ export function Hub({ games, services }: HubProps) {
   return <div className={styles.page}><div className={styles.lobby}>
     <header className={styles.header}><BrandMark /><h1 className={styles.title}>Lazuli <span>Arcade</span></h1><span className={styles.headerNote}>Jogue no seu ritmo</span></header>
     <main className={styles.main}>
-      <div className={styles.hero}><p className={styles.eyebrow}>PEQUENOS MUNDOS. OUTRAS SENSAÇÕES.</p><h2>Uma pausa.<br /><em>Ou um arrepio.</em></h2><p className={styles.lede}>Entre na noite. Desenhe na água.<br />Escolha como quer se sentir agora.</p></div>
-      <h2 className={styles.sectionTitle}>Escolha sua atmosfera</h2>
+      <div className={styles.hero}><p className={styles.eyebrow}>PEQUENOS MUNDOS. OUTRAS SENSAÇÕES.</p><h2>O medo tem<br /><em>uma casa.</em></h2><p className={styles.lede}>Entre na mansão do Último Espetáculo.<br />Encontre as peças. Despiste o palhaço. Fuja.</p></div>
+      <h2 className={styles.sectionTitle}>Você consegue sair?</h2>
       <ul className={styles.featuredGrid}>{featured.map((game) => <GameCard key={game.id} game={game} facts={highlights.get(game.id) ?? []} featured />)}</ul>
       <details className={styles.classics}><summary>Mais jogos <span>{classics.length} clássicos e desafios</span></summary><ul className={styles.grid}>{classics.map((game) => <GameCard key={game.id} game={game} facts={highlights.get(game.id) ?? []} />)}</ul></details>
     </main>

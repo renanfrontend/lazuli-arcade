@@ -4,7 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { defineConfig } from 'vitest/config';
 
 const APP_NAME = 'Lazuli Arcade';
-const APP_DESCRIPTION = 'Experiências atmosféricas de suspense e relaxamento, com Trilha Noturna, Jardim de Luz e clássicos de arcade.';
+const APP_DESCRIPTION = 'Terror em primeira pessoa na mansão de Último Espetáculo e clássicos de arcade.';
 const THEME_COLOR = '#dce8f9';
 
 /**

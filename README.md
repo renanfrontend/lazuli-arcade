@@ -1,6 +1,6 @@
 # Lazuli Arcade
 
-Duas experiências atmosféricas e oito clássicos para celular e desktop, em React e TypeScript. Um lobby leve, jogos independentes que só baixam quando são abertos e progresso salvo no próprio aparelho. Roda como PWA instalável (offline) e também como um único arquivo HTML autocontido.
+Terror em primeira pessoa e oito clássicos para celular e desktop, em React e TypeScript. Um lobby leve, jogos independentes que só baixam quando são abertos e progresso salvo no próprio aparelho. Roda como PWA instalável (offline) e também como um único arquivo HTML autocontido.
 
 **Jogar:** [renanfrontend.github.io/lazuli-arcade](https://renanfrontend.github.io/lazuli-arcade/)
 
@@ -8,24 +8,17 @@ Duas experiências atmosféricas e oito clássicos para celular e desktop, em Re
 
 ## Experiências em destaque
 
-### Jardim de Luz
+### Último Espetáculo
 
-Um lago ao luar para desacelerar. Deslize pela água para criar rastros luminosos, ondas e despertar seis flores de lótus.
+Terror em primeira pessoa numa mansão abandonada, com bonecas que acompanham seu olhar e um palhaço perseguidor. Encontre três peças da caixa de música, volte ao hall para montar o mecanismo e escape pela porta.
 
-- Cenário original, pétalas desenhadas em tempo real, vagalumes e partículas com movimento suave.
-- Toque perto de uma flor por um instante para abri-la; seis botões oferecem cultivo pelo teclado.
-- Três cores de luz, harmônicos suaves, pausa e flores salvas no aparelho.
-- Sem cronômetro, derrota ou pressão por pontuação. Depois de abrir as flores, continue desenhando na água.
-
-### Trilha Noturna
-
-Explore uma clareira à noite, desperte seis refúgios luminosos e atravesse o arco de pedra.
-
-- Cenário original, câmera que acompanha a caminhada, névoa, vagalumes e lanterna dinâmica.
-- Toque para definir o destino; arraste para guiá-lo, use setas / WASD ou o botão Seguir próxima luz. Espaço permite correr com fôlego limitado.
-- Suspense: sombras se aproximam, recuam no cone da lanterna e evitam refúgios iluminados. A tensão aumenta perto de uma sombra e cai nos refúgios.
-- Exploração tranquila: a mesma travessia sem perseguição ou derrota por tensão.
-- A saída se abre após despertar as seis luzes. Pausa por botão / Esc e instruções no jogo.
+- Cenário 3D em WebGL, com materiais deteriorados, painéis de madeira, cortinas, móveis, brinquedos, lustres e lanterna dinâmica.
+- WASD anda; arraste a tela para olhar ou use as setas esquerda/direita. Shift corre, E interage, F liga a lanterna, M abre o mapa e Esc pausa.
+- Controles na tela permitem segurar para caminhar ou tocar para dar um passo; há botões de câmera, corrida e interação.
+- O palhaço desperta após a primeira peça, navega pelas portas, vê a lanterna e escuta corridas. Armários escondem você se ele não presenciou sua entrada.
+- Passos, rangidos, riso, caixa de música e batimentos acompanham a ameaça. A captura provoca um susto e permite tentar de novo.
+- O mapa marca peças ainda não encontradas. Fôlego se recupera ao parar de correr. Pausa congela a partida, e movimento reduzido desativa a trepidação.
+- A rota antiga `#trilha-noturna` foi preservada para manter links já compartilhados.
 
 ## Clássicos e desafios
 
