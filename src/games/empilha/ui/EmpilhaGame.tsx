@@ -104,10 +104,10 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
   const [isTournamentMode, setIsTournamentMode] = useState(false);
   const [showBracket, setShowBracket] = useState(false);
 
-  const boardRef = useRef<HTMLDivElement>(null);
-  const playerFillRef = useRef<HTMLDivElement>(null);
-  const rivalFillRef = useRef<HTMLDivElement>(null);
-  const effectsRef = useRef<EmpilhaEffects>(null);
+  const boardRef = useRef<HTMLDivElement | null>(null);
+  const playerFillRef = useRef<HTMLDivElement | null>(null);
+  const rivalFillRef = useRef<HTMLDivElement | null>(null);
+  const effectsRef = useRef<EmpilhaEffects | null>(null);
 
   const activeTournamentMatch = isTournamentMode ? getActiveTournamentMatch(tournament) : null;
   const currentCharacter: Character = useMemo(() => {

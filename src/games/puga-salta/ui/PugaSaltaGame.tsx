@@ -52,7 +52,7 @@ export default function PugaSaltaGame({ services, onExit }: GameProps) {
   const store = services.openStore(PUGA_STORE);
   const feedback = createPugaFeedback(services.audio);
 
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [stats, setStats] = useState(() => loadPugaStats(store));
   const [gameState, setGameState] = useState<'ready' | 'playing' | 'gameover'>('ready');
   const [currentScore, setCurrentScore] = useState(0);

@@ -1,11 +1,11 @@
-import { useLayoutEffect, useRef, type ReactNode, type RefObject } from 'react';
+import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import styles from './Dialog.module.css';
 
 interface DialogProps {
   readonly open: boolean;
   readonly labelledBy: string;
   readonly describedBy?: string;
-  readonly initialFocusRef?: RefObject<HTMLElement | null>;
+  readonly initialFocusRef?: { readonly current: HTMLElement | null };
   /** Escape key or other platform dismissals. */
   readonly onCancel: () => void;
   readonly children: ReactNode;
@@ -13,7 +13,7 @@ interface DialogProps {
 
 /** Native modal <dialog>: focus trapping, Escape and top-layer stacking for free. */
 export function Dialog({ open, labelledBy, describedBy, initialFocusRef, onCancel, children }: DialogProps) {
-  const ref = useRef<HTMLDialogElement>(null);
+  const ref = useRef<HTMLDialogElement | null>(null);
 
   useLayoutEffect(() => {
     const dialog = ref.current;

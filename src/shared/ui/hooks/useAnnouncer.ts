@@ -5,7 +5,7 @@ import { useCallback, useRef } from 'react';
  * screen readers repeat identical messages ("Peça colocada." twice in a row).
  */
 export const useAnnouncer = () => {
-  const ref = useRef<HTMLParagraphElement>(null);
+  const ref = useRef<HTMLParagraphElement | null>(null);
   const announce = useCallback((message: string) => {
     const region = ref.current;
     if (!region) return;

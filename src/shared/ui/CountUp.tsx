@@ -15,7 +15,7 @@ interface CountUpProps {
  * not re-render React. React only renders the initial text, never touched again.
  */
 export function CountUp({ value, className, delayUp = 0, duration = 650, reducedMotion }: CountUpProps) {
-  const ref = useRef<HTMLSpanElement>(null);
+  const ref = useRef<HTMLSpanElement | null>(null);
   const shown = useRef(value);
   const [initialText] = useState(() => formatNumber(value));
 

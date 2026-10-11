@@ -203,7 +203,7 @@ interface EffectsLayerProps {
 }
 
 export function EffectsLayer({ ref }: EffectsLayerProps) {
-  const rootRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
   useImperativeHandle(ref, () => createEffects(() => rootRef.current), []);
   return createPortal(<div ref={rootRef} className={styles.layer} aria-hidden="true" />, document.body);
 }

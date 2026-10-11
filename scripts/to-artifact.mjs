@@ -19,7 +19,7 @@ const [js, css] = await Promise.all([read(scriptPath), read(stylePath)]);
 
 if (/<\/style/i.test(css)) throw new Error('Inlined CSS contains a closing </style> sequence');
 
-const safeJs = js.replace(/<\/script/gi, '<\/script');
+const safeJs = js.replace(/<\/script/gi, '<\\/script');
 
 const fragment = [
   `<title>${title}</title>`,
@@ -29,8 +29,7 @@ const fragment = [
   `<div id="root" lang="pt-BR"></div>`,
   `<script type="module">${safeJs}</script>`,
   '',
-].join('
-');
+].join('\n');
 
 const target = join(outDir, 'lazuli-arcade.html');
 await writeFile(target, fragment, 'utf8');

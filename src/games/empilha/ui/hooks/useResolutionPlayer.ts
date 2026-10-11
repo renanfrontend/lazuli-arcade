@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Position } from '@shared/domain/grid';
 import { stackAt, withStack, type Board, type PlayerPlacedEvent, type TileColor } from '../../domain';
 import type { EmpilhaFeedback } from '../../application/ports';
@@ -37,7 +37,7 @@ const pushTile = (board: Board, position: Position, color: TileColor): Board =>
 const height = (board: Board, position: Position) => stackAt(board, position)?.length ?? 0;
 
 interface PlayerDeps {
-  readonly effectsRef: RefObject<EmpilhaEffects | null>;
+  readonly effectsRef: { readonly current: EmpilhaEffects | null };
   readonly measure: () => BoardMetrics | null;
   /** Where cleared points fly to: the end of the player's bar. */
   readonly barTarget: () => Point | null;

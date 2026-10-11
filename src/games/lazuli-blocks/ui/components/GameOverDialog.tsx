@@ -28,7 +28,7 @@ export function GameOverDialog({
   onRestart,
   onDismiss,
 }: GameOverDialogProps) {
-  const primaryRef = useRef<HTMLButtonElement>(null);
+  const primaryRef = useRef<HTMLButtonElement | null>(null);
   const isRecord = score > 0 && score >= best;
 
   return (

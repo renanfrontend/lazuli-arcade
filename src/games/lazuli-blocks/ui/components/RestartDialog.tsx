@@ -11,7 +11,7 @@ interface RestartDialogProps {
 }
 
 export function RestartDialog({ open, score, onConfirm, onCancel }: RestartDialogProps) {
-  const keepPlayingRef = useRef<HTMLButtonElement>(null);
+  const keepPlayingRef = useRef<HTMLButtonElement | null>(null);
 
   return (
     <Dialog open={open} labelledBy="restart-title" describedBy="restart-text" initialFocusRef={keepPlayingRef} onCancel={onCancel}>

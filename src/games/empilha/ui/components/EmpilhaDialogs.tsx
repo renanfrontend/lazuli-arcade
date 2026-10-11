@@ -18,7 +18,7 @@ interface PauseDialogProps {
 }
 
 export function PauseDialog({ open, sound, onResume, onToggleSound, onHelp, onRestart, onExit }: PauseDialogProps) {
-  const resumeRef = useRef<HTMLButtonElement>(null);
+  const resumeRef = useRef<HTMLButtonElement | null>(null);
   return (
     <Dialog open={open} labelledBy="empilha-pause-title" describedBy="empilha-pause-text" initialFocusRef={resumeRef} onCancel={onResume}>
       <h2 id="empilha-pause-title" className={dialog.title}>
@@ -62,7 +62,7 @@ interface HelpDialogProps {
 }
 
 export function HelpDialog({ open, target, clearAt, unlockAt, onClose }: HelpDialogProps) {
-  const closeRef = useRef<HTMLButtonElement>(null);
+  const closeRef = useRef<HTMLButtonElement | null>(null);
   return (
     <Dialog open={open} labelledBy="empilha-help-title" initialFocusRef={closeRef} onCancel={onClose}>
       <h2 id="empilha-help-title" className={dialog.title}>
@@ -100,7 +100,7 @@ interface ResultDialogProps {
 }
 
 export function ResultDialog({ open, won, reason, playerScore, rivalScore, nextLevel, stats, onNext, onExit }: ResultDialogProps) {
-  const nextRef = useRef<HTMLButtonElement>(null);
+  const nextRef = useRef<HTMLButtonElement | null>(null);
   const copy = RESULT_COPY[reason];
   return (
     <Dialog open={open} labelledBy="empilha-result-title" describedBy="empilha-result-text" initialFocusRef={nextRef} onCancel={onExit}>
