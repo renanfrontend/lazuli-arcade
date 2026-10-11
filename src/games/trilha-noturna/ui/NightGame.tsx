@@ -8,6 +8,7 @@ import { useGameRecord } from '@shared/ui/mini/useMiniGame';
 import cover from '../../../assets/scenes/haunted-mansion.webp';
 import clown from '../../../assets/scenes/mansion-clown.webp';
 import { closePuzzle, collectedCount, createMansion, distance, FLOORPLAN, interactMansion, interaction, LOCKERS, lookMansion, nextHint, NOTES, RELICS, SAFE, stepMansion, submitMelody, submitSafe, toggleFlashlight, type HorrorEvent, type MelodyColor } from '../domain/game';
+import { useImmersive, useIsPortrait } from './immersive';
 import { Joystick } from './Joystick';
 import { JournalSheet, MelodySheet, NoteSheet, SafeSheet, type Verdict } from './Panels';
 import type { StickVector } from './stick';
@@ -28,6 +29,8 @@ export default function NightGame({services,onExit}:GameProps){
   const notice=useRef({text:'',until:0}),stick=useRef<StickVector>({x:0,y:0});
   const [phase,setPhase]=useState<Phase>('ready'),[hud,setHud]=useState<Hud>(initialHud),[help,setHelp]=useState(false),[map,setMap]=useState(false),[sheet,setSheet]=useState<Sheet|null>(null),[reading,setReading]=useState(0);
   const [controls,setControls]=useState(()=>window.matchMedia('(pointer:coarse)').matches),[run,setRun]=useState(false),[graphicsError,setGraphicsError]=useState<string|null>(null),[software,setSoftware]=useState(false);
+  const immersive=phase!=='ready',portrait=useIsPortrait();
+  useImmersive(immersive,controls);
   const visible=useDocumentVisible(),reduced=useReducedMotion();const {finish}=useGameRecord(services,'ultimo-espetaculo:v1');
   const pause=useCallback(()=>{setPhase(v=>v==='playing'?'paused':v==='paused'?'playing':v);},[]);
   const cue=(event:HorrorEvent)=>{
@@ -57,7 +60,7 @@ export default function NightGame({services,onExit}:GameProps){
   const keyAction=useEffectEvent(act),keyJournal=useEffectEvent(journal),keyTorch=useEffectEvent(()=>{if(phase==='playing')game.current=toggleFlashlight(game.current);});
   const paint=useEffectEvent((renderer:ReturnType<typeof createMansionRenderer>,time:number)=>{if(phase!=='ready')renderer.draw(game.current,time,reduced);});
   const frame=useEffectEvent((dt:number,time:number)=>{
-    const active=phase==='playing'&&!help&&visible&&sheet===null;
+    const active=phase==='playing'&&!help&&visible&&sheet===null&&!(controls&&portrait);
     if(active){
       const pressed=(...names:string[])=>names.some(name=>keys.current.has(name)||(pulses.current.get(name)??0)>0);
       const analog=stick.current,input={forward:Number(pressed('w','arrowup'))-Number(pressed('s','arrowdown'))+analog.y,strafe:Number(pressed('d'))-Number(pressed('a'))+analog.x,turn:Number(pressed('arrowright'))-Number(pressed('arrowleft')),sprint:run||pressed('shift')||Math.hypot(analog.x,analog.y)>.96};
@@ -101,7 +104,7 @@ export default function NightGame({services,onExit}:GameProps){
   const start=()=>{game.current=createMansion();setHud(initialHud);notice.current={text:'Leia os bilhetes. A manivela está na brinquedoteca, à esquerda.',until:performance.now()/1000+12};timers.current={hud:0,ambient:0,step:0,enemy:0,heart:0,haunt:performance.now()/1000+20};stick.current={x:0,y:0};setRun(false);setMap(false);setSheet(null);setHelp(false);setPhase('playing');};
   const objective=hud.door?'Atravesse a porta do hall':hud.pieces===3?'Toque a melodia no hall':`Resolva os enigmas · peças ${hud.pieces}/3`;
   return <div className={styles.horror}><SceneFrame services={services} onExit={onExit} title="Último Espetáculo" eyebrow="Terror em primeira pessoa" paused={phase==='paused'} onPause={pause}>
-    <div className={styles.stage} data-hidden={hud.hidden} data-reduced={reduced}>
+    <div className={styles.stage} data-hidden={hud.hidden} data-reduced={reduced} data-immersive={immersive}>
       <canvas key={software?'software':'auto'} ref={canvas} className={styles.canvas} tabIndex={0} role="img" aria-label={`Mansão em primeira pessoa. ${hud.pieces} de 3 peças. ${hud.hidden?'Escondido no armário.':hud.chasing?'O palhaço está perseguindo você.':'Explore os quartos.'}`}
         onPointerDown={event=>{if(phase!=='playing'||event.button!==0)return;drag.current={id:event.pointerId,x:event.clientX,y:event.clientY};event.currentTarget.setPointerCapture(event.pointerId);}}
         onPointerMove={event=>{const p=drag.current;if(p?.id!==event.pointerId||phase!=='playing')return;game.current=lookMansion(game.current,(event.clientX-p.x)*.006,-(event.clientY-p.y)*.0035);drag.current={id:event.pointerId,x:event.clientX,y:event.clientY};}}
@@ -113,6 +116,8 @@ export default function NightGame({services,onExit}:GameProps){
       {phase==='playing'&&<div className={styles.interact}>{hud.action?<button type="button" onClick={act}><kbd>E</kbd>{hud.action}</button>:<span>{hud.pieces===0?'Procure objetos com brilho dourado.':'Ouça os passos. Armários são esconderijos.'}</span>}</div>}
       <div className={styles.tools}><button type="button" onClick={()=>{game.current=toggleFlashlight(game.current);}} aria-label={hud.flashlight?'Desligar lanterna':'Ligar lanterna'} aria-pressed={hud.flashlight}>◉ <span>Lanterna · F</span></button><button type="button" aria-pressed={map} onClick={()=>{setMap(v=>!v);}}>⌑ <span>Mapa · M</span></button><button type="button" onClick={journal}>✎ <span>Diário · J</span></button></div>
       {map&&<div className={styles.map}><strong>Planta da mansão</strong><svg viewBox="0 0 38 42" role="img" aria-label="Mapa da mansão. Branco: você. Ouro: peças. Verde: saída.">{FLOORPLAN.map((row,z)=>Array.from({length:row.length},(_,x)=>row[x]).map((cell,x)=><rect key={`${x}:${z}`} x={x*2} y={z*2} width="2" height="2" fill={cell==='#'?'#0d0b0b':'#6d6259'} />))}{LOCKERS.map(l=><rect key={`${l.x}:${l.z}`} x={l.x-.7} y={l.z-.7} width="1.4" height="1.4" fill="#6f9bd6"/>)}{!hud.safeOpen&&<rect x={SAFE.x-.8} y={SAFE.z-.8} width="1.6" height="1.6" fill="#c9ccd3"/>}{RELICS.map((p,i)=>!hud.collected[i]&&<circle key={p.name} cx={p.x} cy={p.z} r=".8" fill="#e8bc73" />)}<rect x="18" y="39" width="2" height="1" fill="#a8cbad"/><circle data-map-marker="player" cx={hud.x} cy={hud.z} r=".75" fill="white"/><path d="M0,-2 L-.6,-.8 L.6,-.8Z" fill="white" transform={`translate(${hud.x} ${hud.z}) rotate(${hud.yaw*180/Math.PI})`}/></svg><span>Você: branco · Peças: ouro · Armários: azul · Cofre: cinza</span><span>Brinquedoteca: inferior esquerda<br/>Camarim: meio à direita<br/>Bonecas: superior esquerda</span></div>}
+      {controls&&phase==='playing'&&!portrait&&<button type="button" className={styles.pauseBtn} onClick={pause} aria-label="Pausar">❚❚</button>}
+      {controls&&immersive&&portrait&&<div className={styles.rotate} role="alert"><span aria-hidden="true">⟳</span><strong>Gire o celular</strong><p>O Último Espetáculo se joga na horizontal. A partida está pausada.</p></div>}
       {controls&&phase==='playing'&&<div className={styles.touch}><Joystick disabled={help} onChange={vector=>{stick.current=vector;}}/><div className={styles.cluster}>
         <button type="button" className={styles.act} data-ready={hud.action!==null} disabled={hud.action===null} aria-label={hud.action??'Interagir'} onClick={act}><span aria-hidden="true">{hud.hidden?'⇱':'✋'}</span>{hud.hidden?'Sair':'Usar'}</button>
         <button type="button" className={styles.tool} aria-pressed={run} onClick={()=>{setRun(v=>!v);}}><span aria-hidden="true">»</span><small>Correr</small></button>
