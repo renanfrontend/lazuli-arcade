@@ -47,6 +47,31 @@ Jogo de ação e pulo vertical nas alturas estrelando o mascote Puga!
 - Power-ups da turma: Casco protetor da Tatá salva de quedas!
 - Recorde de altura em metros salvo no aparelho.
 
+### Cobrinha de Cristais
+
+Cobrinha em um tabuleiro 16 × 16. Colete cristais, cresça e acompanhe o ritmo que aumenta a cada gema.
+
+- Deslize no tabuleiro, use os botões de direção ou as setas / WASD.
+- Cada cristal vale 10 pontos. Paredes e o próprio corpo encerram a partida.
+- Pausa por botão ou `Esc`, recorde salvo e vitória ao preencher o tabuleiro.
+
+### Memória dos Bichos
+
+Dezesseis cartas e oito pares da turma do arcade, sem cronômetro.
+
+- Toque em duas cartas para procurar um par. Pelo teclado, use `Tab` e `Enter` / espaço.
+- Cartas diferentes ficam visíveis por um instante; pares encontrados permanecem abertos.
+- Quanto menos jogadas, mais pontos. Recorde salvo no aparelho.
+
+### Quebra-Gemas
+
+Rebata a bolinha com a raquete e limpe três fases de gemas, com três vidas.
+
+- Arraste a raquete no celular, mova o mouse ou use as setas / A e D.
+- Toque, aperte espaço ou use “Lançar bolinha” para começar cada lançamento.
+- Gemas resistentes nas fases seguintes; o ponto de impacto na raquete define o ângulo.
+- Física com passo fixo, pausa por botão / `Esc` e pontuação salva.
+
 ### Controles
 
 | Entrada | Lazuli Blocks | Empilha | Puga Salta |
@@ -83,8 +108,17 @@ src/
 └── games/
     ├── lazuli-blocks/      domain · application · infrastructure · ui
     ├── empilha/            domain · application · infrastructure · ui (personagens, torneio, 3d fx)
-    └── puga-salta/         application · infrastructure · ui (canvas game loop, plataformas)
+    ├── puga-salta/         application · infrastructure · ui (canvas game loop, plataformas)
+    ├── cobrinha-cristais/  domain · ui (tabuleiro e controles por gesto)
+    ├── memoria-bichos/     domain · ui (cartas e pares)
+    └── quebra-gemas/       domain · ui (física em passo fixo e canvas)
 ```
+
+## Qualidade e publicação
+
+Os jogos carregam sob demanda e compartilham configurações de som e os controles do arcade. Os três novos jogos guardam recordes em namespaces próprios, sem alterar o progresso dos anteriores. A PWA pré-carrega os arquivos compilados para uso offline depois da primeira visita completa.
+
+O workflow `.github/workflows/deploy.yml` valida TypeScript, lint e testes antes de publicar a branch `main` no GitHub Pages. Os testes cobrem colisões e geração de cristais, pares e bloqueio de cartas, física da bolinha, vidas, fases e persistência dos recordes.
 
 ## Direitos autorais
 

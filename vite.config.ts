@@ -4,7 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { defineConfig } from 'vitest/config';
 
 const APP_NAME = 'Lazuli Arcade';
-const APP_DESCRIPTION = 'Arcade de jogos casuais para o celular: Lazuli Blocks e Empilha.';
+const APP_DESCRIPTION = 'Seis jogos casuais para celular e desktop: puzzles, plataformas, cobrinha, memória e quebra-gemas.';
 const THEME_COLOR = '#dce8f9';
 
 /**

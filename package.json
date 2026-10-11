@@ -3,7 +3,7 @@
   "private": true,
   "version": "2.1.0",
   "type": "module",
-  "description": "Arcade de jogos casuais para o celular: Lazuli Blocks, Empilha e Puga Salta.",
+  "description": "Seis jogos casuais para celular e desktop, com PWA offline e recordes locais.",
   "author": {
     "name": "Renan Augusto dos Santos",
     "url": "https://renanaugusto.com.br"
