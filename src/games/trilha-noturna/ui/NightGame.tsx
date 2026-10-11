@@ -61,7 +61,7 @@ export default function NightGame({services,onExit}:GameProps){
     let renderer:ReturnType<typeof createMansionRenderer>;
     try{renderer=createMansionRenderer(element,clown,software);}catch(error){const message=error instanceof Error?error.message:'Não foi possível abrir os gráficos 3D.';queueMicrotask(()=>{if(!software)setSoftware(true);else setGraphicsError(message);});return undefined;}
     let raf=0,previous=performance.now(),painted=0;
-    const draw=(now:number)=>{const dt=Math.min((now-previous)/1000,.05);previous=now;if(document.visibilityState==='visible'){frame(dt,now/1000);if(now-painted>33){painted=now;paint(renderer,now/1000);}}raf=requestAnimationFrame(draw);};
+    const draw=(now:number)=>{const dt=Math.min((now-previous)/1000,.08);previous=now;if(document.visibilityState==='visible'){frame(dt,now/1000);if(now-painted>33){painted=now;paint(renderer,now/1000);}}raf=requestAnimationFrame(draw);};
     const lost=(event:Event)=>{event.preventDefault();setSoftware(true);setPhase('paused');};
     element.addEventListener('webglcontextlost',lost);raf=requestAnimationFrame(draw);
     return()=>{cancelAnimationFrame(raf);renderer.dispose();element.removeEventListener('webglcontextlost',lost);};

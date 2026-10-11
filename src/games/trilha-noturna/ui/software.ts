@@ -8,6 +8,8 @@ export function createSoftwareRenderer(canvas:HTMLCanvasElement,clownUrl:string,
   const wall=texture('wall'),wood=texture('wood'),ceiling=texture('ceiling');
   const floorPixels=wood.getContext('2d')?.getImageData(0,0,512,512).data,ceilingPixels=ceiling.getContext('2d')?.getImageData(0,0,512,512).data;
   const clown=new Image();clown.src=clownUrl;let disposed=false,frame:ImageData|null=null,depths=new Float32Array(1);
+  const lightCache=new Map<HTMLCanvasElement|HTMLImageElement,HTMLCanvasElement[]>();
+  const shaded=(image:HTMLCanvasElement|HTMLImageElement,light:number)=>{const level=Math.min(3,Math.max(0,Math.floor(light*4)));if(level===3)return image;let versions=lightCache.get(image);if(!versions){versions=[];for(const brightness of [.25,.5,.75]){const copy=document.createElement('canvas');copy.width=image.width;copy.height=image.height;const painter=copy.getContext('2d');if(painter){painter.drawImage(image,0,0);painter.globalCompositeOperation='source-atop';painter.fillStyle='rgba(0,0,0,'+(1-brightness).toString()+')';painter.fillRect(0,0,copy.width,copy.height);}versions.push(copy);}lightCache.set(image,versions);}return versions[level]??image;};
   const makeProp=(kind:'wardrobe'|'dresser'|'doll'|'key'|'horse'|'box'):HTMLCanvasElement=>{
     const c=document.createElement('canvas');c.width=256;c.height=512;const g=c.getContext('2d');if(!g)return c;
     g.shadowColor='#000';g.shadowBlur=10;
@@ -31,7 +33,7 @@ export function createSoftwareRenderer(canvas:HTMLCanvasElement,clownUrl:string,
   const props={wardrobe:makeProp('wardrobe'),dresser:makeProp('dresser'),doll:makeProp('doll'),key:makeProp('key'),horse:makeProp('horse'),box:makeProp('box')};
   return {
     draw(state,time,reduced){
-      if(disposed)return;const rect=canvas.getBoundingClientRect(),width=Math.max(240,Math.min(700,Math.round(rect.width*.7))),height=Math.max(200,Math.round(width*rect.height/Math.max(1,rect.width)));
+      if(disposed)return;const rect=canvas.getBoundingClientRect(),width=Math.max(240,Math.min(600,Math.round(rect.width*.6))),height=Math.max(200,Math.round(width*rect.height/Math.max(1,rect.width)));
       if(canvas.width!==width||canvas.height!==height||!frame){canvas.width=width;canvas.height=height;frame=ctx.createImageData(width,height);depths=new Float32Array(width);}
       const p=state.player,fy=-Math.cos(p.yaw),fx=Math.sin(p.yaw),rx=Math.cos(p.yaw),rz=Math.sin(p.yaw),projection=height/(2*Math.tan(74*Math.PI/360));
       const horizon=height/2+Math.tan(p.pitch)*projection+(reduced?0:Math.sin(time*6)*.4),pixels=frame.data;
@@ -60,10 +62,10 @@ export function createSoftwareRenderer(canvas:HTMLCanvasElement,clownUrl:string,
       if(state.enemy.awake&&clown.complete&&clown.naturalWidth){let x=state.enemy.x,z=state.enemy.z;if(state.status==='caught'){x=p.x+fx*.8;z=p.z+fy*.8;}sprites.push({x,z,y:reduced?0:Math.sin(time*6)*.02,width:1.8,height:2.7,image:clown,glow:false});}
       sprites.sort((a,b)=>(b.x-p.x)*fx+(b.z-p.z)*fy-((a.x-p.x)*fx+(a.z-p.z)*fy));
       for(const sprite of sprites){const dx=sprite.x-p.x,dz=sprite.z-p.z,d=dx*fx+dz*fy;if(d<.1)continue;const horizontal=dx*rx+dz*rz,cx=width/2+horizontal/d*projection,sw=sprite.width/d*projection,sh=sprite.height/d*projection,left=cx-sw/2,top=horizon-(sprite.y+sprite.height-1.65)*projection/d;if(left>width||left+sw<0)continue;
-        const light=sprite.glow?1:Math.min(1,.18+(state.flashlight?1.1*Math.exp(-((horizontal/d)**2)*2.4)/(1+.035*d*d):0)+.15/(1+Math.abs(sprite.z-35)*.1));ctx.filter=`brightness(${light})`;
-        for(let x=Math.max(0,Math.floor(left));x<Math.min(width,left+sw);x+=2){if((depths[x]??60)<d-.12)continue;const sx=(x-left)/sw*sprite.image.width,swidth=Math.max(.5,2/sw*sprite.image.width);ctx.drawImage(sprite.image,sx,0,Math.min(swidth,sprite.image.width-sx),sprite.image.height,x,top,2,sh);}
-      }ctx.filter='none';
+        const light=sprite.glow?1:Math.min(1,.18+(state.flashlight?1.1*Math.exp(-((horizontal/d)**2)*2.4)/(1+.035*d*d):0)+.15/(1+Math.abs(sprite.z-35)*.1));const picture=shaded(sprite.image,light),end=Math.min(width,Math.ceil(left+sw));let begin=-1;
+        for(let x=Math.max(0,Math.floor(left));x<=end;x++){const visible=x<end&&(depths[x]??60)>=d-.12;if(visible&&begin<0)begin=x;if(!visible&&begin>=0){const span=x-begin,sx=Math.max(0,(begin-left)/sw*picture.width),swidth=Math.min(picture.width-sx,span/sw*picture.width);if(swidth>0)ctx.drawImage(picture,sx,0,swidth,picture.height,begin,top,span,sh);begin=-1;}}
+      }
       if(state.doorOpen){const dz=EXIT.z-p.z,dx=EXIT.x-p.x,d=dx*fx+dz*fy;if(d>.15){const x=width/2+(dx*rx+dz*rz)/d*projection;ctx.fillStyle='#d6dcb232';ctx.fillRect(x-projection/d,Math.max(0,horizon-1.05*projection/d),2*projection/d,2.1*projection/d);}}
-    },dispose(){disposed=true;clown.src='';frame=null;},
+    },dispose(){disposed=true;clown.src='';frame=null;lightCache.clear();},
   };
 }
