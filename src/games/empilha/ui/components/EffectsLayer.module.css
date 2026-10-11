@@ -1,0 +1,66 @@
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  overflow: hidden;
+  pointer-events: none;
+  perspective: 800px;
+}
+
+.fx {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform, opacity;
+  transform-style: preserve-3d;
+}
+
+/* A loose tile at board scale (same drawing as tiles on the board). */
+.flyer {
+  --t: calc(var(--hw) * var(--layer));
+  width: calc(var(--hw) * 2);
+  height: calc(var(--hw) * var(--squash) * 2);
+  transform-style: preserve-3d;
+}
+
+.spark {
+  border-radius: 30%;
+  background: linear-gradient(135deg, var(--c-hi), var(--c-face) 55%, var(--c-side));
+  box-shadow: 0 0 0 1.5px rgb(255 255 255 / 0.85);
+  transform: rotate(45deg);
+}
+
+.ring {
+  border: 4px solid #f2b632;
+  border-radius: 50%;
+  box-shadow: 0 0 12px rgba(242, 182, 50, 0.6);
+}
+
+.text {
+  font-family: var(--font-display);
+  line-height: 1;
+  white-space: nowrap;
+  -webkit-text-stroke: 0.16em #ffffff;
+  paint-order: stroke fill;
+  filter: drop-shadow(0 3px 4px rgb(15 23 42 / 0.25));
+}
+
+.points {
+  color: #1c62d4;
+  font-size: 30px;
+}
+
+.chain {
+  color: #e8590c;
+  font-size: 24px;
+}
+
+.rival {
+  color: #c22d24;
+  font-size: 18px;
+}
+
+.unlock {
+  color: #b7791f;
+  font-size: 20px;
+}

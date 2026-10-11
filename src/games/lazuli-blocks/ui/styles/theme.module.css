@@ -1,0 +1,48 @@
+/* Lazuli Blocks palette, scoped to the game's root so the lobby and other games keep theirs. */
+.theme {
+  --sky: #3a9fe9;
+  --sky-glow: #67bdf8;
+  --tile: #4aadf3;
+  --tile-line: #2b88d6;
+  --frame: #0b1222;
+  --frame-ring: transparent;
+  --fg: #0b1222;
+  --fg-soft: #123c68;
+  --panel: #63baf6;
+  /* The board ring sits on the ink frame line, so it stays yellow in both themes. */
+  --focus-board: #ffe14d;
+
+  /* Mascot */
+  --fur: #b8743c;
+  --fur-shade: #925628;
+  --muzzle: #e3ad76;
+  --ear: #6c3d1c;
+  --blush: #ff8ca0;
+  --tongue: #ff6b81;
+}
+
+@media (prefers-color-scheme: dark) {
+  :global(:root:not([data-theme='light'])) .theme {
+    --sky: #0c2350;
+    --sky-glow: #1c4288;
+    --tile: #143a74;
+    --tile-line: #0c2b5a;
+    --frame: #02050c;
+    --frame-ring: #2d5fae;
+    --fg: #eef6ff;
+    --fg-soft: #a6c4ec;
+    --panel: #1b4589;
+  }
+}
+
+:global(:root[data-theme='dark']) .theme {
+  --sky: #0c2350;
+  --sky-glow: #1c4288;
+  --tile: #143a74;
+  --tile-line: #0c2b5a;
+  --frame: #02050c;
+  --frame-ring: #2d5fae;
+  --fg: #eef6ff;
+  --fg-soft: #a6c4ec;
+  --panel: #1b4589;
+}

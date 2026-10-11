@@ -1,0 +1,82 @@
+/* Fills the viewport (safe areas included) like a native game screen. */
+.app {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: env(safe-area-inset-top, 0px) 14px env(safe-area-inset-bottom, 0px);
+  overflow: hidden;
+  container-type: size;
+  background-color: var(--e-bg);
+  background-image: radial-gradient(110% 55% at 50% -12%, var(--e-bg-glow), transparent 70%);
+  color: var(--e-fg);
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/*
+ * One column: top bar, score race, live opponent view, board, hint, your tray.
+ */
+.stage {
+  --bar-h: 40px;
+  --race-h: 56px;
+  --hint-h: 24px;
+  --gap: clamp(3px, 0.9cqh, 8px);
+  --hw-board: max(
+    16px,
+    min(
+      100cqw / 10.4,
+      (100cqh - var(--bar-h) - var(--race-h) - 100px - var(--hint-h) - 5 * var(--gap) - 24px) / 12.8,
+      44px
+    )
+  );
+  --hw: var(--hw-board);
+  display: grid;
+  grid-template-rows:
+    var(--bar-h) var(--race-h) auto 1fr var(--hint-h)
+    calc(var(--hw-board) * 2.2 + 6px);
+  justify-items: center;
+  gap: var(--gap);
+  width: min(100%, calc(var(--hw-board) * 10 + 40px), 34rem);
+  height: 100%;
+  max-height: 60rem;
+  padding-block: 4px;
+}
+
+.boardWrap {
+  display: grid;
+  place-items: center;
+}
+
+.hintRow {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.hint {
+  max-width: 100%;
+  margin: 0;
+  padding: 4px 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--paper-fg);
+  box-shadow: 0 4px 14px var(--e-shadow);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: hint-in 0.3s ease-out both;
+}
+
+@keyframes hint-in {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}

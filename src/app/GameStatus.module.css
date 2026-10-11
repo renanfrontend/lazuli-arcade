@@ -1,0 +1,69 @@
+.status {
+  display: grid;
+  min-height: 100dvh;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
+  padding-inline: 16px;
+  text-align: center;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 400;
+  text-wrap: balance;
+}
+
+.text {
+  max-width: 36ch;
+  margin: 0;
+  color: var(--fg-soft);
+  font-weight: 700;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.primary,
+.secondary {
+  min-height: 46px;
+  padding: 10px 18px;
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  box-shadow: 0 4px 0 var(--ink);
+  font-family: var(--font-display);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.primary {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+.secondary {
+  background: var(--paper);
+  color: var(--paper-fg);
+}
+
+/* A cut gem spinning in place. */
+.spinner {
+  width: 34px;
+  height: 34px;
+  border: 3px solid var(--ink);
+  border-radius: 8px;
+  background: conic-gradient(from -45deg, #b2c9ff 0 25%, #4664f1 0 50%, #18248e 0 75%, #7592ff 0);
+  animation: spin 1.1s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

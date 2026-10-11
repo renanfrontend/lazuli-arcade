@@ -1,0 +1,10 @@
+.piece {
+  display: grid;
+  grid-template-columns: repeat(var(--w), var(--cell));
+  grid-template-rows: repeat(var(--h), var(--cell));
+  pointer-events: none;
+}
+
+.block {
+  position: relative;
+}

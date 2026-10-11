@@ -1,0 +1,109 @@
+/* Square grid turned 45°: cell (col,row) sits at x = (col − row + rows − 1)·hw, y = headroom + (col + row)·hh. */
+.board {
+  --hh: calc(var(--hw) * var(--squash));
+  --t: calc(var(--hw) * var(--layer));
+  position: relative;
+  width: calc((var(--cols) + var(--rows)) * var(--hw));
+  height: calc(var(--headroom) * var(--hw) + (var(--cols) + var(--rows)) * var(--hh));
+  touch-action: none;
+  outline: none;
+}
+
+.interactive {
+  cursor: pointer;
+}
+
+.board:focus-visible::after {
+  content: '';
+  position: absolute;
+  inset: calc(var(--headroom) * var(--hw) - 6px) -6px -6px;
+  border: 3px dashed var(--focus);
+  border-radius: 18px;
+  pointer-events: none;
+}
+
+.cell {
+  position: absolute;
+  left: calc((var(--col) - var(--row) + var(--rows) - 1) * var(--hw));
+  top: calc(var(--headroom) * var(--hw) + (var(--col) + var(--row)) * var(--hh));
+  width: calc(2 * var(--hw));
+  height: calc(2 * var(--hh));
+}
+
+.floor {
+  transition:
+    background 0.15s,
+    filter 0.15s;
+}
+
+/* Where a dragged stack would land. */
+.cell[data-target='true'] .floor {
+  background: linear-gradient(135deg, var(--e-floor-hi), var(--e-glow));
+  filter: drop-shadow(0 0 calc(var(--hw) * 0.18) var(--e-glow));
+}
+
+.cell[data-cursor='true'] .floor {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* After a tap on a tray stack: every free cell glows softly (static under reduced motion). */
+.cell[data-available='true'] .floor {
+  --c-hi: color-mix(in srgb, var(--e-glow) 45%, var(--e-floor-hi));
+  animation: breathe 0.9s ease-in-out infinite alternate;
+}
+
+/*
+ * Stands on the floor tile and grows upwards. The child combinator outranks the stack's own
+ * `position: relative` (tiles.module.css) whatever order the stylesheets end up in.
+ */
+.cell > .stack {
+  position: absolute;
+  left: 0;
+  bottom: var(--t);
+  animation: land 0.22s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+.lock {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 1px;
+  color: var(--e-fg);
+  pointer-events: none;
+}
+
+.lockIcon {
+  width: calc(var(--hw) * 0.5);
+  height: calc(var(--hw) * 0.5);
+  color: var(--e-lock-rim);
+  filter: drop-shadow(0 1px 0 rgb(0 0 0 / 0.35));
+}
+
+.lockLabel {
+  font-family: var(--font-display);
+  font-size: calc(var(--hw) * 0.34);
+  line-height: 1;
+  color: var(--e-fg);
+}
+
+.cell[data-locked='true'] .floor {
+  box-shadow:
+    var(--drop) var(--drop) 0 var(--c-side),
+    0 0 0 calc(var(--hw) * 0.05) var(--e-lock-rim) inset;
+}
+
+@keyframes breathe {
+  to {
+    filter: brightness(1.06) drop-shadow(0 0 calc(var(--hw) * 0.12) var(--e-glow));
+  }
+}
+
+@keyframes land {
+  from {
+    translate: 0 calc(var(--hw) * -0.25);
+    opacity: 0.6;
+  }
+}

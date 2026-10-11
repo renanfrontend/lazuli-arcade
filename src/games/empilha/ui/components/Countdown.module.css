@@ -1,0 +1,44 @@
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--e-bg) 35%, transparent);
+  pointer-events: none;
+}
+
+.number {
+  color: var(--e-player-deep);
+  font-family: var(--font-display);
+  font-size: clamp(88px, 30cqw, 150px);
+  line-height: 1;
+  -webkit-text-stroke: 6px #ffffff;
+  paint-order: stroke fill;
+  filter: drop-shadow(0 8px 14px var(--e-shadow));
+  animation: count 0.8s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+.number[data-go='true'] {
+  color: var(--e-rival);
+  animation-duration: 0.55s;
+}
+
+@keyframes count {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  35% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  80% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+}

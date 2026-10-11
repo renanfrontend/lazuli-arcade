@@ -1,0 +1,137 @@
+/*
+ * A tile is a rounded square turned 45° and squashed into a diamond. Its side is an offset
+ * shadow exactly one tile thick, so in a stack each tile hides the face of the one below and
+ * only the colored edges show. Sizes come from --hw (half diamond width), --t (tile thickness)
+ * and --squash, all set by the caller.
+ */
+.stack {
+  /* Recomputed here so a stack drawn at another --hw (tray, rival tray, drag) keeps its proportions. */
+  --t: calc(var(--hw) * var(--layer));
+  --size: calc(var(--hw) * 1.32);
+  --drop: calc(var(--t) / (1.41421 * var(--squash)));
+  position: relative;
+  display: block;
+  width: calc(var(--hw) * 2);
+  height: calc(var(--hw) * var(--squash) * 2 + (var(--n) - 1) * var(--t));
+  pointer-events: none;
+}
+
+.layer {
+  position: absolute;
+  left: 0;
+  bottom: calc(var(--k) * var(--t));
+  width: 100%;
+  height: calc(var(--hw) * var(--squash) * 2);
+}
+
+.tile {
+  --size: calc(var(--hw) * 1.32);
+  --drop: calc(var(--t) / (1.41421 * var(--squash)));
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--size);
+  height: var(--size);
+  margin: calc(var(--size) / -2);
+  border-radius: 20%;
+  background: linear-gradient(135deg, var(--c-hi) 0%, var(--c-face) 46%, var(--c-lo) 100%);
+  box-shadow:
+    var(--drop) var(--drop) 0 var(--c-side),
+    calc(var(--drop) + 0.8px) calc(var(--drop) + 0.8px) 0 rgb(0 0 0 / 0.16);
+  transform: scaleY(var(--squash)) rotate(45deg);
+}
+
+/* Top face details live in the tile's own (rotated) space. */
+.icon {
+  position: absolute;
+  left: 27%;
+  top: 27%;
+  width: 46%;
+  height: 46%;
+  color: var(--c-ink);
+  transform: rotate(-45deg);
+}
+
+/* Sits on the upper-right edge, turned with the tile, like a number printed along the rim. */
+.count {
+  position: absolute;
+  top: 3%;
+  left: 50%;
+  translate: -50% 0;
+  color: var(--c-ink);
+  font-family: var(--font-display);
+  font-size: calc(var(--size) * 0.3);
+  line-height: 1;
+  -webkit-text-stroke: calc(var(--size) * 0.03) var(--c-hi);
+  paint-order: stroke fill;
+}
+
+.faded {
+  opacity: 0.42;
+  filter: saturate(0.8);
+}
+
+/* Tile palettes: the same in both themes, like real game pieces. */
+[data-color='sky'] {
+  --c-hi: #a6e7ff;
+  --c-face: #5ccbff;
+  --c-lo: #37aef0;
+  --c-side: #2489cc;
+  --c-ink: #0f5793;
+}
+
+[data-color='grape'] {
+  --c-hi: #d6a8ff;
+  --c-face: #a45cf0;
+  --c-lo: #8a3fdc;
+  --c-side: #6628b0;
+  --c-ink: #3f1478;
+}
+
+[data-color='sun'] {
+  --c-hi: #fff2a8;
+  --c-face: #ffd64a;
+  --c-lo: #ffc21f;
+  --c-side: #dc980a;
+  --c-ink: #8a5600;
+}
+
+[data-color='rose'] {
+  --c-hi: #ffb7e3;
+  --c-face: #f06bc4;
+  --c-lo: #dd47aa;
+  --c-side: #ad2a80;
+  --c-ink: #721450;
+}
+
+[data-color='leaf'] {
+  --c-hi: #bdf29a;
+  --c-face: #7fd157;
+  --c-lo: #63b93c;
+  --c-side: #418d26;
+  --c-ink: #245514;
+}
+
+[data-color='royal'] {
+  --c-hi: #a6c2ff;
+  --c-face: #4f86ff;
+  --c-lo: #3466ec;
+  --c-side: #2045b8;
+  --c-ink: #10277a;
+}
+
+[data-color='floor'] {
+  --c-hi: var(--e-floor-hi);
+  --c-face: var(--e-floor);
+  --c-lo: var(--e-floor);
+  --c-side: var(--e-floor-side);
+  --c-ink: var(--e-fg-soft);
+}
+
+[data-color='locked'] {
+  --c-hi: var(--e-lock-face);
+  --c-face: var(--e-lock-face);
+  --c-lo: var(--e-lock-face);
+  --c-side: var(--e-floor-side);
+  --c-ink: var(--e-fg);
+}

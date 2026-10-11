@@ -1,0 +1,96 @@
+/* Empilha palette: a bright tabletop, blue for you, red for the rival. Scoped to the game's root. */
+.theme {
+  --e-bg: #f2f5fa;
+  --e-bg-glow: #ffffff;
+  --e-fg: #111827;
+  --e-fg-soft: #5a6577;
+  --e-accent: #2b77e0;
+  --e-floor: #e1e6ee;
+  --e-floor-hi: #eef2f7;
+  --e-floor-side: #c3cbd7;
+  --e-lock-face: #b9c2d0;
+  --e-lock-rim: #f2b632;
+  --e-player: #3a92f7;
+  --e-player-deep: #1c62d4;
+  --e-rival: #f2554a;
+  --e-rival-deep: #c22d24;
+  --e-track: #e4e9f1;
+  --e-track-line: #cbd3df;
+  --e-vs: #ffbf2e;
+  --e-vs-ink: #7a2b0f;
+  --e-target: #111827;
+  --e-shadow: rgb(30 41 59 / 0.18);
+  --e-glow: rgb(58 146 247 / 0.55);
+
+  /* Softer dialogs than the arcade's ink style (see shared Dialog tokens). */
+  --paper: #ffffff;
+  --paper-fg: #111827;
+  --paper-soft: #eef2f8;
+  --panel: #e7edf6;
+  --fg: #111827;
+  --dialog-border: 0;
+  --dialog-radius: 26px;
+  --dialog-shadow: 0 18px 50px rgb(15 23 42 / 0.28);
+  --button-border: 0;
+  --button-shadow: 0 4px 0 rgb(15 23 42 / 0.2);
+  --button-shadow-active: 0 1px 0 rgb(15 23 42 / 0.2);
+  --button-primary: #2f86f0;
+  --button-primary-fg: #ffffff;
+  --button-secondary: #e7edf6;
+  --button-secondary-fg: #111827;
+  --focus: #1c62d4;
+}
+
+@media (prefers-color-scheme: dark) {
+  :global(:root:not([data-theme='light'])) .theme {
+    --e-bg: #0d1422;
+    --e-bg-glow: #1a2540;
+    --e-fg: #eef2fa;
+    --e-fg-soft: #9ba7bd;
+    --e-accent: #74aefc;
+    --e-floor: #263149;
+    --e-floor-hi: #2e3a56;
+    --e-floor-side: #151c2b;
+    --e-lock-face: #3b4661;
+    --e-track: #1a2335;
+    --e-track-line: #2b364c;
+    --e-target: #eef2fa;
+    --e-shadow: rgb(0 0 0 / 0.45);
+    --paper: #172036;
+    --paper-fg: #eef2fa;
+    --paper-soft: #1f2a44;
+    --panel: #24304a;
+    --fg: #eef2fa;
+    --button-secondary: #26324d;
+    --button-secondary-fg: #eef2fa;
+    --button-shadow: 0 4px 0 rgb(0 0 0 / 0.45);
+    --button-shadow-active: 0 1px 0 rgb(0 0 0 / 0.45);
+    --focus: #ffe14d;
+  }
+}
+
+:global(:root[data-theme='dark']) .theme {
+  --e-bg: #0d1422;
+  --e-bg-glow: #1a2540;
+  --e-fg: #eef2fa;
+  --e-fg-soft: #9ba7bd;
+  --e-accent: #74aefc;
+  --e-floor: #263149;
+  --e-floor-hi: #2e3a56;
+  --e-floor-side: #151c2b;
+  --e-lock-face: #3b4661;
+  --e-track: #1a2335;
+  --e-track-line: #2b364c;
+  --e-target: #eef2fa;
+  --e-shadow: rgb(0 0 0 / 0.45);
+  --paper: #172036;
+  --paper-fg: #eef2fa;
+  --paper-soft: #1f2a44;
+  --panel: #24304a;
+  --fg: #eef2fa;
+  --button-secondary: #26324d;
+  --button-secondary-fg: #eef2fa;
+  --button-shadow: 0 4px 0 rgb(0 0 0 / 0.45);
+  --button-shadow-active: 0 1px 0 rgb(0 0 0 / 0.45);
+  --focus: #ffe14d;
+}
