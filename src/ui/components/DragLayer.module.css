@@ -1,0 +1,21 @@
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.piece {
+  position: absolute;
+  top: 0;
+  left: 0;
+  filter: drop-shadow(0 12px 10px var(--shadow));
+  will-change: transform;
+  transition: opacity 0.12s;
+}
+
+/* Once the ghost shows the landing spot, the floating copy steps back. */
+.piece[data-snapped='true'] {
+  opacity: 0.88;
+}

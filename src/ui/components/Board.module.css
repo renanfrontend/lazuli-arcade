@@ -1,0 +1,61 @@
+/* Double outline like an arcade cabinet bezel: outer line, sky gap, inner line. */
+.frame {
+  position: relative;
+  border: var(--frame-line) solid var(--frame);
+  padding: var(--frame-gap);
+  border-radius: 3px;
+  background: var(--sky);
+  box-shadow: 0 0 0 2px var(--frame-ring);
+}
+
+.frame[data-danger='true'] {
+  animation: danger 1.6s ease-in-out infinite;
+}
+
+.inner {
+  border: var(--frame-line) solid var(--frame);
+}
+
+.grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), var(--cell));
+  grid-template-rows: repeat(var(--rows), var(--cell));
+  background-color: var(--tile);
+  background-image:
+    linear-gradient(to right, var(--tile-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--tile-line) 1px, transparent 1px);
+  background-size: var(--cell) var(--cell);
+  background-position: -1px -1px;
+  touch-action: none;
+}
+
+.grid:focus-visible {
+  outline: 3px solid var(--focus-board);
+  outline-offset: 3px;
+}
+
+.placing {
+  cursor: pointer;
+}
+
+.cell {
+  position: relative;
+}
+
+.conflict::after {
+  content: '';
+  position: absolute;
+  inset: calc(var(--cell) * 0.04);
+  border: max(2px, calc(var(--cell) * 0.08)) solid var(--danger);
+  border-radius: calc(var(--cell) * 0.16);
+  z-index: 1;
+}
+
+@keyframes danger {
+  50% {
+    box-shadow:
+      0 0 0 2px var(--frame-ring),
+      0 0 0 5px color-mix(in srgb, var(--danger) 55%, transparent);
+  }
+}
