@@ -1,6 +1,3 @@
-// Folds `dist-artifact/` (built with `vite build --mode artifact`) into a single
-// HTML fragment: <title>, inline <style>, #root and an inline module script.
-// No external requests, so the page runs inside sandboxed hosts and offline.
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -22,19 +19,18 @@ const [js, css] = await Promise.all([read(scriptPath), read(stylePath)]);
 
 if (/<\/style/i.test(css)) throw new Error('Inlined CSS contains a closing </style> sequence');
 
-// `</script` inside the bundle would end the inline tag early; `<\/` is equivalent in JS strings and regexes.
-const safeJs = js.replace(/<\/script/gi, '<\\/script');
+const safeJs = js.replace(/<\/script/gi, '<\/script');
 
 const fragment = [
   `<title>${title}</title>`,
   `<meta name="description" content="Arcade de jogos casuais para o celular: Lazuli Blocks, Empilha e Puga Salta.">`,
   `<meta name="author" content="Renan Augusto dos Santos">`,
   `<style>${css}</style>`,
-  // The host page owns <html>, so the language goes on the app root for screen readers.
   `<div id="root" lang="pt-BR"></div>`,
   `<script type="module">${safeJs}</script>`,
   '',
-].join('\n');
+].join('
+');
 
 const target = join(outDir, 'lazuli-arcade.html');
 await writeFile(target, fragment, 'utf8');

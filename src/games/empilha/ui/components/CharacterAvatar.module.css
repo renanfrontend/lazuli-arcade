@@ -1,0 +1,31 @@
+.avatarWrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffffff 0%, #e9ecef 80%);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.16), inset 0 1px 2px rgba(255, 255, 255, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.animated {
+  animation: float-head 3.6s ease-in-out infinite;
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+@keyframes float-head {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-2px) scale(1.02);
+  }
+}

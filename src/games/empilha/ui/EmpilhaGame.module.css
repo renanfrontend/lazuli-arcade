@@ -1,4 +1,3 @@
-/* Fills the viewport (safe areas included) like a native game screen. */
 .app {
   position: fixed;
   inset: 0;
@@ -15,9 +14,6 @@
   user-select: none;
 }
 
-/*
- * One column: top bar, score race, live opponent view, board, hint, your tray.
- */
 .stage {
   --bar-h: 40px;
   --race-h: 56px;

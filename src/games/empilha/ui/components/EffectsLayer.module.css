@@ -15,7 +15,6 @@
   transform-style: preserve-3d;
 }
 
-/* A loose tile at board scale (same drawing as tiles on the board). */
 .flyer {
   --t: calc(var(--hw) * var(--layer));
   width: calc(var(--hw) * 2);

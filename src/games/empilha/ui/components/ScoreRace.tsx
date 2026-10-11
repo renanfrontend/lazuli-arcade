@@ -15,7 +15,6 @@ interface ScoreRaceProps {
 
 const progress = (value: number, target: number) => Math.min(1, Math.max(0, value / target));
 
-/** Two bars racing towards the same target: yours fills from the left, the rival's from the right. */
 export function ScoreRace({ player, rival, target, playerFillRef, rivalFillRef, character }: ScoreRaceProps) {
   const rivalName = character?.name ?? 'Oponente';
 

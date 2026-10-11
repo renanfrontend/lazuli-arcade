@@ -15,7 +15,6 @@ export interface HopInput {
 
 export interface PopInput {
   readonly at: Point;
-  /** Where the tile's points fly to (the score bar), or null to just burst. */
   readonly to: Point | null;
   readonly color: TileColor;
   readonly hw: number;
@@ -30,9 +29,7 @@ export interface FloatTextInput {
 }
 
 export interface EmpilhaEffects {
-  /** One tile flips with 3D rotation from a stack top onto another; resolves when it lands. */
   readonly hop: (input: HopInput) => Promise<void>;
-  /** A tile bursts off a clearing stack and its points fly to the bar; resolves on arrival. */
   readonly pop: (input: PopInput) => Promise<void>;
   readonly floatText: (input: FloatTextInput) => void;
   readonly ring: (at: Point, hw: number) => void;
@@ -41,7 +38,6 @@ export interface EmpilhaEffects {
 
 const translate = (x: number, y: number) => `translate3d(${x}px, ${y}px, 0)`;
 
-/** Quadratic Bézier point. */
 const bezier = (p0: number, p1: number, p2: number, t: number) => (1 - t) ** 2 * p0 + 2 * (1 - t) * t * p1 + t ** 2 * p2;
 
 const settle = (animation: Animation, element: Element): Promise<void> =>
@@ -79,11 +75,9 @@ const createEffects = (getRoot: () => HTMLElement | null): EmpilhaEffects => ({
     const dy = to.y - from.y;
     const dir = dx >= 0 ? 1 : -1;
     const dist = Math.hypot(dx, dy);
-    // Dynamic arc rise based on jump distance
     const rise = Math.max(hw * 1.5, dist * 0.52);
     const control = { x: (from.x + to.x) / 2, y: Math.min(from.y, to.y) - rise };
 
-    // Acrobatic 3D flip and spin rotation
     const steps = [0, 0.2, 0.4, 0.6, 0.8, 1];
     const frames: Keyframe[] = steps.map((t) => {
       const bx = bezier(from.x, control.x, to.x, t) - hw;
@@ -208,7 +202,6 @@ interface EffectsLayerProps {
   readonly ref: Ref<EmpilhaEffects>;
 }
 
-/** Fire-and-forget animations drawn imperatively in a fixed overlay: no React work per frame. */
 export function EffectsLayer({ ref }: EffectsLayerProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   useImperativeHandle(ref, () => createEffects(() => rootRef.current), []);

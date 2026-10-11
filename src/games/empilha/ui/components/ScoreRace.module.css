@@ -94,7 +94,6 @@
   text-shadow: 0 1.5px 0 rgb(0 0 0 / 0.3);
 }
 
-/* Italic, outlined and slightly skewed, like a fighting-game badge. */
 .vs {
   padding-inline: 2px;
   color: var(--e-vs);

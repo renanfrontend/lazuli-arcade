@@ -68,14 +68,12 @@ interface Selection {
   readonly source: 'pointer' | 'keyboard';
 }
 
-/** Composition root of the game: arcade services in, Empilha adapters out. */
 const useEmpilhaServices = ({ openStore, audio, seedSource }: GameProps['services']): EmpilhaServices =>
   useMemo(
     () => ({ store: openStore(EMPILHA_STORE), feedback: createEmpilhaFeedback(audio), seedSource }),
     [openStore, audio, seedSource],
   );
 
-/** What a screen reader hears after a move settles. */
 const describeMove = (event: PlayerPlacedEvent): string => {
   const { resolution, unlocked, dealt } = event.outcome;
   const parts: string[] = [];
@@ -102,7 +100,6 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
   const [selection, setSelection] = useState<Selection | null>(null);
   const [liveRef, announce] = useAnnouncer();
 
-  // Tournament state
   const [tournament, setTournament] = useState(() => loadTournament(store));
   const [isTournamentMode, setIsTournamentMode] = useState(false);
   const [showBracket, setShowBracket] = useState(false);
@@ -112,7 +109,6 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
   const rivalFillRef = useRef<HTMLDivElement>(null);
   const effectsRef = useRef<EmpilhaEffects>(null);
 
-  // Active opponent character
   const activeTournamentMatch = isTournamentMode ? getActiveTournamentMatch(tournament) : null;
   const currentCharacter: Character = useMemo(() => {
     if (isTournamentMode && activeTournamentMatch?.competitor2.characterId) {
@@ -143,7 +139,6 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
     feedback.cue(ended.status === 'won' ? 'win' : 'lose');
     if (ended.endReason) announce(`${RESULT_COPY[ended.endReason].title} ${RESULT_COPY[ended.endReason].text}`);
 
-    // If in tournament mode, update tournament
     if (isTournamentMode) {
       const nextTournament = advanceTournament(
         tournament,
@@ -153,14 +148,11 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
       );
       setTournament(nextTournament);
       saveTournament(store, nextTournament);
-      // Brief pause then show bracket
       window.setTimeout(() => {
         setShowBracket(true);
       }, 1200);
     }
   };
-
-  /* ---------- the opponent ---------- */
 
   useOpponentClock({
     active: live && menu === null && visible && !showBracket,
@@ -181,8 +173,6 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
       if (before.status === 'playing' && after.status !== 'playing') celebrate(after);
     },
   });
-
-  /* ---------- placing ---------- */
 
   const place = (slot: number, at: Position): boolean => {
     if (!canAct) return false;
@@ -243,8 +233,6 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
     },
   });
 
-  /* ---------- tap and keyboard placement ---------- */
-
   const toggleSelection = (slot: number, source: 'pointer' | 'keyboard') => {
     if (!canAct || !match.player.tray[slot]) return;
     if (selection?.slot === slot) {
@@ -300,8 +288,6 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
     }
   };
 
-  /* ---------- match flow ---------- */
-
   const startMatch = (level: number) => {
     reset();
     setSelection(null);
@@ -313,7 +299,6 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
   const startTournamentMatch = () => {
     setShowBracket(false);
     setIsTournamentMode(true);
-    // Level difficulty increases with round (Round 0 -> Lv 1, Round 1 -> Lv 3, Round 2 -> Lv 5)
     const tourLevel = tournament.currentRound * 2 + 1;
     startMatch(tourLevel);
   };
@@ -351,8 +336,6 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
       window.removeEventListener('keydown', listener);
     };
   }, []);
-
-  /* ---------- render ---------- */
 
   const free = freeCells(match.player.board).length;
   const locked = positionsWhere(match.player.board, (cell) => cell.kind === 'locked');
@@ -405,7 +388,6 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
           character={currentCharacter}
         />
 
-        {/* Live view showing Opponent Character, live speech, mini board, and animated tray */}
         <OpponentLiveView
           character={currentCharacter}
           opponent={match.opponent}
@@ -454,13 +436,12 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
       <DragLayer view={drag.view} tiles={draggedTiles} hw={drag.view ? drag.view.width / 2 : 0} layerRef={drag.attachLayer} />
       <EffectsLayer ref={effectsRef} />
 
-      {/* Tournament Bracket Modal */}
       {showBracket && (
         <TournamentBracket
           tournament={tournament}
           onPlayMatch={startTournamentMatch}
           onResetTournament={resetTournament}
-          onClose={() => setShowBracket(false)}
+          onClose={() => { setShowBracket(false); }}
         />
       )}
 
