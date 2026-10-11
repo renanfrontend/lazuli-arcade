@@ -21,7 +21,11 @@
     "noFallthroughCasesInSwitch": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
+
+    "paths": {
+      "@shared/*": ["./src/shared/*"]
+    }
   },
   "include": ["src"]
 }

@@ -1,0 +1,44 @@
+.rules {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 1.2em;
+  text-align: left;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.rules li::marker {
+  color: var(--e-accent);
+}
+
+.badge {
+  display: grid;
+  width: 64px;
+  height: 64px;
+  margin: -54px auto 0;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--e-rival);
+  color: #ffffff;
+  box-shadow: 0 6px 16px var(--e-shadow);
+}
+
+.badge svg {
+  width: 34px;
+  height: 34px;
+}
+
+.badge[data-won='true'] {
+  background: var(--e-vs);
+  color: var(--e-vs-ink);
+}
+
+.you {
+  color: var(--e-player-deep);
+}
+
+.rival {
+  color: var(--e-rival-deep);
+}

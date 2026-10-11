@@ -1,94 +1,105 @@
-# Lazuli Blocks
+# Lazuli Arcade
 
-Block puzzle de gemas para celular e desktop. Arraste as peças até o tabuleiro 11 × 13; cada linha ou coluna completa se desfaz e as gemas viram moedas que voam até o contador.
+Arcade de jogos casuais para celular e desktop, em React e TypeScript. Um lobby leve, jogos independentes que só baixam quando são abertos e progresso salvo no próprio aparelho. Roda como PWA instalável (offline) e também como um único arquivo HTML autocontido.
 
-Roda como PWA instalável (offline) e também como um único arquivo HTML autocontido.
+**Jogar:** [renanfrontend.github.io/lazuli-arcade](https://renanfrontend.github.io/lazuli-arcade/)
 
-![Três momentos de uma jogada: a prévia do encaixe acende as linhas, as gemas viram moedas e as moedas voam até o contador](docs/preview.png)
+![Lobby do arcade, uma jogada do Lazuli Blocks virando moedas e um duelo do Empilha limpando dez peças](docs/preview.png)
 
-## Como jogar
+## Jogos
+
+### Lazuli Blocks
+
+Block puzzle de gemas num tabuleiro 11 × 13. Linhas e colunas completas se desfazem e as gemas viram moedas que voam até o contador.
 
 - Arraste uma das três peças da bandeja até o tabuleiro. No toque, a peça flutua acima do dedo e o encaixe é tolerante (procura a casa válida mais próxima).
-- Linhas (11 gemas) e colunas (13 gemas) completas são removidas ao mesmo tempo; cruzamentos contam uma vez.
-- **Moedas:** cada gema removida vale 1 moeda, com bônus para várias linhas de uma vez, combos (limpar em jogadas seguidas, com até 2 jogadas de folga) e tabuleiro limpo.
-- **Pontos:** contam por partida e definem o recorde. As moedas ficam guardadas entre partidas.
-- **Trocar peças:** gaste moedas para sortear outra bandeja (30, depois 60, 90… na mesma partida). Também funciona na tela de fim de jogo.
-- A partida acaba quando nenhuma peça da bandeja cabe no tabuleiro.
+- Linhas (11 gemas) e colunas (13 gemas) completas saem ao mesmo tempo; cruzamentos contam uma vez.
+- **Moedas:** cada gema removida vale 1, com bônus para várias linhas de uma vez, combos e tabuleiro limpo. Ficam guardadas entre partidas.
+- **Trocar peças:** gaste moedas para sortear outra bandeja (30, depois 60, 90… na mesma partida).
+- A partida acaba quando nenhuma peça da bandeja cabe.
 
-| Entrada | Ação |
-| --- | --- |
-| Arrastar (mouse, toque, caneta) | Move e solta a peça |
-| Tocar na peça, depois no tabuleiro | Posiciona; tocar na sombra confirma |
-| `1` `2` `3` ou `Enter` na peça | Seleciona a peça |
-| Setas | Movem a peça selecionada |
-| `Enter` / `Espaço` | Coloca |
-| `Esc` | Cancela |
+### Empilha
+
+Duelo de pilhas contra um oponente que joga o próprio tabuleiro ao mesmo tempo que você.
+
+- Arraste uma pilha da bandeja até uma casa vazia do tabuleiro (losango 5 × 5).
+- Pilhas vizinhas com o mesmo símbolo no topo se juntam: as peças pulam, uma a uma, para a pilha que tiver mais daquele símbolo.
+- Dez iguais no topo somem e viram pontos. Limpezas em sequência na mesma jogada valem em dobro, em triplo…
+- A casa com cadeado abre quando você chega a 90 pontos.
+- Quem chegar a 370 primeiro vence; se o seu tabuleiro encher, você perde. A cada vitória o nível sobe e o oponente fica mais rápido e mais esperto.
+
+### Controles
+
+| Entrada | Lazuli Blocks | Empilha |
+| --- | --- | --- |
+| Arrastar (mouse, toque, caneta) | Move e solta a peça | Move e solta a pilha |
+| Tocar na bandeja, depois no tabuleiro | Posiciona; tocar na sombra confirma | Coloca na casa tocada (as livres acendem) |
+| `1` `2` `3` | Seleciona a peça | Seleciona a pilha |
+| Setas · `Enter` | Movem e colocam | Movem o cursor e colocam |
+| `Esc` | Cancela | Cancela ou pausa |
 
 ## Stack
 
-React 19 · TypeScript 6 (strict, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`) · Vite 8 · Vitest · ESLint `strictTypeChecked` · `vite-plugin-pwa`. Sem bibliotecas de estado, animação ou áudio.
+React 19 · TypeScript 6 (strict, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`) · Vite 8 · Vitest · ESLint `strictTypeChecked` · `vite-plugin-pwa`. Sem bibliotecas de estado, animação, roteamento ou áudio.
 
 ## Scripts
 
 ```bash
 npm install
 npm run dev             # servidor local
-npm test                # 77 testes de domínio e persistência
+npm test                # 125 testes de domínio, aplicação e shell
 npm run lint            # ESLint com regras type-checked
-npm run build           # PWA em dist/ (manifest, service worker, ícones)
-npm run build:artifact  # um único HTML em dist-artifact/lazuli-blocks.html
+npm run typecheck       # tsc -b
+npm run build           # PWA em dist/ (BASE_PATH=/lazuli-arcade/ para subpasta)
+npm run build:artifact  # um único HTML em dist-artifact/lazuli-arcade.html
 ```
 
-Node `^20.19` ou `>=22.12`.
+Node `^20.19` ou `>=22.12`. Cada push na `main` passa por typecheck, lint e testes e publica no GitHub Pages (`.github/workflows/deploy.yml`).
 
 ## Arquitetura
 
 ```
 src/
-├── domain/           regras puras: zero React, zero DOM, zero I/O
-│   ├── grid.ts         grade imutável genérica (Grid<TCell>)
-│   ├── board.ts        tabuleiro = Grid<GemKind | null>
-│   ├── shapes.ts       catálogo em ASCII ('#.\n##'), rotações/espelhos gerados
-│   ├── placement.ts    encaixe, origens válidas, snap tolerante, preview
-│   ├── lines.ts        linhas/colunas completas e remoção
-│   ├── scoring.ts      pontos, moedas, combos
-│   ├── dealer.ts       distribuição justa e adaptativa da bandeja
-│   ├── rubble.ts       pilha inicial irregular (nunca com linha completa)
-│   ├── rng.ts          PRNG puro com seed (mulberry32)
-│   ├── snapshot.ts     serialização versionada + validação de dados não confiáveis
-│   └── game.ts         estado, eventos e reducer
-├── application/      casos de uso e portas
-│   ├── ports.ts        KeyValueStore, FeedbackPort, SeedSource
-│   ├── persistence.ts  carregar/salvar jogo, perfil e preferências
-│   └── useGame.ts      liga o reducer ao React e mantém o save em dia
-├── infrastructure/   adaptadores concretos das portas
-│   ├── browserStore.ts       localStorage com fallback em memória (nunca lança)
-│   ├── webAudioFeedback.ts   efeitos sintetizados + vibração
-│   └── seed.ts               seed via crypto.getRandomValues
-├── ui/               componentes, hooks e estilos (CSS Modules)
-└── main.tsx          composition root: único ponto que conhece os adaptadores
+├── main.tsx              composition root: cria os adaptadores e entrega ArcadeServices ao app
+├── app/                  shell: lobby, registro de jogos, rotas por hash, error boundary
+├── shared/               núcleo compartilhado entre os jogos
+│   ├── domain/             grade imutável genérica, PRNG puro com seed
+│   ├── application/        portas (KeyValueStore, AudioPort, FeedbackPort) e configurações do arcade
+│   ├── infrastructure/     localStorage resiliente, sintetizador Web Audio, seed via crypto
+│   └── ui/                 Dialog nativo, drag genérico por Pointer Events, hooks, tokens de tema
+└── games/
+    ├── lazuli-blocks/      domain · application · infrastructure · ui
+    └── empilha/            domain · application · infrastructure · ui
 ```
 
-Regra de dependência: `ui → application → domain`. `infrastructure` implementa as portas de `application`, e só o `main.tsx` junta tudo.
+Regra de dependência: `ui → application → domain`, em cada jogo e no núcleo. `infrastructure` implementa as portas de `application`, os jogos dependem só de `shared/` e nunca um do outro, e só o `main.tsx` conhece os adaptadores concretos.
+
+### Adicionando um jogo
+
+1. Crie `src/games/<id>/` com as camadas de que o jogo precisar.
+2. Exporte um `GameDefinition` em `src/games/<id>/index.ts`: `id` (também a rota `#<id>`), título, chamada, cor do navegador, uma miniatura leve para o card e a tela em `lazy(() => import('./ui/<Jogo>'))`. Opcionalmente, `highlights` lê o save do jogo para mostrar recordes no lobby.
+3. Inclua o jogo em `GAMES`, em `src/app/registry.ts`.
+
+Cada jogo vira um chunk separado, salva dados no próprio namespace (`<id>:v1:*`) e recebe do shell só `services` e `onExit`. Um erro dentro de um jogo cai no error boundary do shell, sem derrubar o arcade.
 
 ### Decisões técnicas
 
-- **Domínio determinístico.** O PRNG recebe e devolve a seed, que mora no estado. A mesma seed reproduz a partida inteira, o que permite testes de propriedade (partidas aleatórias inteiras, verificando invariantes a cada jogada) e restaurar um save sem divergir.
-- **Distribuição justa.** Os pesos das peças se adaptam ao preenchimento do tabuleiro e a uma rampa de dificuldade. Se alguma peça do catálogo ainda cabe, a bandeja sempre traz ao menos uma que cabe: o jogo nunca termina logo depois de uma nova bandeja.
-- **Drag fora do ciclo do React.** Pointer Events com captura; a peça flutuante se move via `transform` dentro de `requestAnimationFrame`, e o React só re-renderiza quando muda a casa de encaixe (sombra e linhas que vão brilhar).
-- **Efeitos imperativos.** Gemas que estouram, estilhaços e moedas em curva de Bézier são nós criados num overlay fixo e animados com Web Animations API; cada nó se remove ao terminar. Contadores animam escrevendo direto no DOM.
-- **Save à prova de dados ruins.** O snapshot é validado campo a campo (formas, gemas, dimensões, contadores, tabuleiro sem linha completa). Qualquer inconsistência inicia uma partida nova em vez de quebrar.
-- **Layout de uma unidade.** Tudo deriva de `--cell`, calculado com container queries a partir da largura e da altura disponíveis e arredondado para pixels inteiros com `round()`, para manter linhas e bordas nítidas de 320 px a desktop.
-- **Acessibilidade.** Modo teclado completo, `aria-live` narrando jogadas, rótulos descritivos das peças, `<dialog>` nativo (foco preso e `Esc`), foco visível com contraste mínimo de 3:1 nos dois temas e `prefers-reduced-motion` respeitado.
-- **Temas.** Paleta diurna (céu azul, fiel à referência) e noturna, via tokens CSS e `prefers-color-scheme`.
+- **Domínios determinísticos.** O PRNG recebe e devolve a seed, que mora no estado. A mesma seed reproduz a partida inteira, o que permite testes de propriedade e restaurar um save sem divergir.
+- **Saves à prova de dados ruins.** Snapshots versionados e validados campo a campo; qualquer inconsistência inicia uma partida nova em vez de quebrar.
+- **Drag fora do ciclo do React.** Um hook genérico (`usePointerDrag`) move a peça via `transform` dentro de `requestAnimationFrame`; o React só re-renderiza quando muda o alvo do encaixe. Serve aos dois jogos.
+- **Efeitos imperativos.** Gemas, moedas, peças que pulam e faíscas são nós num overlay fixo animados com Web Animations API, que se removem ao terminar.
+- **Empilha: resolução em passos.** Cada fusão e limpeza vira um passo com o tabuleiro resultante, e a UI reproduz os passos em sequência, peça por peça. Invariante testado: depois de uma jogada, nenhum par de vizinhos tem o mesmo topo.
+- **Empilha: oponente real.** O oponente joga um tabuleiro próprio com as mesmas regras, escolhendo jogadas por heurística; o nível ajusta tempo de reação e precisão. Ele pausa junto com o menu e quando a aba fica oculta. O equilíbrio (meta, casa bloqueada, receita das pilhas) foi calibrado por simulação.
+- **Isometria só com CSS.** Grade quadrada girada 45°, peças como quadrados arredondados achatados, com a lateral desenhada por `box-shadow`; todas as medidas derivam de `--hw`, calculado com container queries.
+- **Acessibilidade.** Teclado completo nos dois jogos, `aria-live` narrando jogadas, rótulos descritivos, `<dialog>` nativo, foco visível com contraste nos dois temas e `prefers-reduced-motion` respeitado.
+- **Temas.** Paletas claras e escuras por tokens CSS e `prefers-color-scheme`; a cor da barra do navegador acompanha o jogo aberto.
 
 ### Mascote
 
-Capi, uma capivara com uma safira na cabeça, personagem original em SVG com seis humores (tranquila, concentrada, feliz, empolgada, preocupada, triste) que reagem ao estado do tabuleiro.
+Capi, a capivara com uma gema azul na cabeça do Lazuli Blocks, é uma personagem original em SVG, com seis humores que reagem ao estado do tabuleiro.
 
-## Levando para as lojas (Expo / React Native)
+## Direitos autorais
 
-`domain/` e `application/` não tocam no DOM, então funcionam sem alteração em React Native. Para portar, basta:
+© 2026 Renan Augusto dos Santos. Todos os direitos reservados. Código, jogos, personagens e artes não podem ser copiados, modificados ou distribuídos sem autorização; veja [LICENSE](LICENSE).
 
-1. Implementar `KeyValueStore` com MMKV ou AsyncStorage e `FeedbackPort` com `expo-audio` e `expo-haptics`.
-2. Reescrever `ui/` com `react-native-reanimated` e `react-native-gesture-handler`, mantendo os mesmos eventos de domínio.
+Conheça mais em [renanaugusto.com.br](https://renanaugusto.com.br).

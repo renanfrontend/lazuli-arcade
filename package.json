@@ -1,9 +1,19 @@
 {
-  "name": "lazuli-blocks",
+  "name": "lazuli-arcade",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
-  "description": "Block puzzle de gemas: complete linhas e colunas e transforme gemas em moedas.",
+  "description": "Arcade de jogos casuais para o celular: Lazuli Blocks e Empilha.",
+  "author": {
+    "name": "Renan Augusto dos Santos",
+    "url": "https://renanaugusto.com.br"
+  },
+  "license": "UNLICENSED",
+  "homepage": "https://renanfrontend.github.io/lazuli-arcade/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/renanfrontend/lazuli-arcade.git"
+  },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
   },

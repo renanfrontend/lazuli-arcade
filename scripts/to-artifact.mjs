@@ -27,7 +27,8 @@ const safeJs = js.replace(/<\/script/gi, '<\\/script');
 
 const fragment = [
   `<title>${title}</title>`,
-  `<meta name="description" content="Block puzzle de gemas: complete linhas e colunas e transforme gemas em moedas.">`,
+  `<meta name="description" content="Arcade de jogos casuais para o celular: Lazuli Blocks e Empilha.">`,
+  `<meta name="author" content="Renan Augusto dos Santos">`,
   `<style>${css}</style>`,
   // The host page owns <html>, so the language goes on the app root for screen readers.
   `<div id="root" lang="pt-BR"></div>`,
@@ -35,6 +36,6 @@ const fragment = [
   '',
 ].join('\n');
 
-const target = join(outDir, 'lazuli-blocks.html');
+const target = join(outDir, 'lazuli-arcade.html');
 await writeFile(target, fragment, 'utf8');
 console.log(`artifact ready: ${target} (${(fragment.length / 1024).toFixed(1)} KiB)`);
