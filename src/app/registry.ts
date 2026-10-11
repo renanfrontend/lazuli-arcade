@@ -6,7 +6,10 @@ import { cobrinhaCristais } from '../games/cobrinha-cristais';
 import { memoriaBichos } from '../games/memoria-bichos';
 import { quebraGemas } from '../games/quebra-gemas';
 
-export const GAMES: readonly GameDefinition[] = [lazuliBlocks, empilha, pugaSalta, cobrinhaCristais, memoriaBichos, quebraGemas];
+import { reversi } from '../games/reversi';
+import { grid2048 } from '../games/2048';
+
+export const GAMES: readonly GameDefinition[] = [reversi, grid2048, lazuliBlocks, empilha, quebraGemas, cobrinhaCristais, pugaSalta, memoriaBichos];
 
 export const findGame = (id: string | null): GameDefinition | null =>
   id === null ? null : (GAMES.find((game) => game.id === id) ?? null);

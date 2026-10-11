@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useMemo, useState } from 'react';
+import { useCallback, useEffect, useEffectEvent, useMemo, useState } from 'react';
 import type { ArcadeServices } from '../../application/arcade';
 import { readRecord, saveRecord } from '../../application/records';
 
@@ -7,9 +7,9 @@ export type Phase = 'ready' | 'playing' | 'paused' | 'over';
 export function useGameRecord(services: ArcadeServices, namespace: string) {
   const store = useMemo(() => services.openStore(namespace), [services, namespace]);
   const [record, setRecord] = useState(() => readRecord(store));
-  const finish = (score: number) => {
+  const finish = useCallback((score: number) => {
     setRecord(saveRecord(store, score));
-  };
+  }, [store]);
   return { record, finish };
 }
 

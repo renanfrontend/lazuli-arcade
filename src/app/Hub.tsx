@@ -27,7 +27,7 @@ export function Hub({ games, services }: HubProps) {
             <h1 className={styles.title}>
               Lazuli <span className={styles.accent}>Arcade</span>
             </h1>
-            <p className={styles.lede}>Jogos rápidos feitos para o celular. Seu progresso fica salvo neste aparelho.</p>
+            <p className={styles.lede}>Estratégia, lógica e ação. Escolha seu desafio no celular ou no computador.</p>
           </div>
         </header>
 

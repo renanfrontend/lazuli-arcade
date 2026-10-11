@@ -1,0 +1,6 @@
+export function ReversiThumbnail() {
+  return <svg viewBox="0 0 360 150" width="100%" height="100%" aria-hidden="true"><rect width="360" height="150" fill="#101b2e" /><path d="M20 35H340M20 75H340M20 115H340M60 0V150M100 0V150M140 0V150M180 0V150M220 0V150M260 0V150M300 0V150" stroke="#214740" />{[[-1, 160, 55], [1, 200, 55], [1, 160, 95], [-1, 200, 95], [1, 240, 55], [1, 120, 95]].map(([disc, x, y], i) => <circle key={i} cx={x} cy={y} r="17" fill={disc === 1 ? '#080f1d' : '#e2eaf5'} stroke={disc === 1 ? '#6a7d93' : '#fff'} strokeWidth="2" />)}<circle cx="240" cy="95" r="5" fill="#5eead4" /><text x="23" y="24" fill="#5eead4" fontFamily="sans-serif" fontSize="10" letterSpacing="2">ESTRATÉGIA / 3 NÍVEIS</text></svg>;
+}
+export function GridThumbnail() {
+  return <svg viewBox="0 0 360 150" width="100%" height="100%" aria-hidden="true"><rect width="360" height="150" fill="#101b2e" />{[128, 256, 512, 1024, 2, 4, 8, 2048].map((value, i) => <g key={value}><rect x={24 + i % 4 * 80} y={14 + Math.floor(i / 4) * 64} width="72" height="56" rx="8" fill={['#b95721', '#aa860f', '#7260cb', '#ab4aa3', '#c6d3e6', '#98c8d6', '#1c8b8f', '#057d6f'][i]} /><text x={60 + i % 4 * 80} y={50 + Math.floor(i / 4) * 64} textAnchor="middle" fill={i === 4 || i === 5 ? '#152236' : '#fff'} fontFamily="sans-serif" fontWeight="bold" fontSize="23">{value}</text></g>)}</svg>;
+}

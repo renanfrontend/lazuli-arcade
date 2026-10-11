@@ -1,12 +1,32 @@
 # Lazuli Arcade
 
-Arcade de jogos casuais para celular e desktop, em React e TypeScript. Um lobby leve, jogos independentes que só baixam quando são abertos e progresso salvo no próprio aparelho. Roda como PWA instalável (offline) e também como um único arquivo HTML autocontido.
+Oito jogos de estratégia, lógica e ação para celular e desktop, em React e TypeScript. Um lobby leve, jogos independentes que só baixam quando são abertos e progresso salvo no próprio aparelho. Roda como PWA instalável (offline) e também como um único arquivo HTML autocontido.
 
 **Jogar:** [renanfrontend.github.io/lazuli-arcade](https://renanfrontend.github.io/lazuli-arcade/)
 
 ![Lobby do arcade, uma jogada do Lazuli Blocks virando moedas e um duelo do Empilha limpando dez peças](docs/preview.png)
 
 ## Jogos
+
+### Reversi
+
+Estratégia em um tabuleiro 8 × 8 contra o computador, com interface escura e três dificuldades.
+
+- Você joga com as pretas; capture peças em oito direções. Casas legais ficam marcadas.
+- Iniciante escolhe jogadas legais aleatórias; intermediário e avançado usam busca alpha-beta, mobilidade e controle de cantos, com orçamento de busca limitado.
+- Passagem automática de turno quando não houver jogadas; fim da partida quando nenhum jogador puder jogar.
+- Posição e dificuldade salvas a cada jogada. Pausa, regras, placar e indicação da última jogada.
+- Mudar de dificuldade inicia uma partida; o botão Nova partida pede confirmação.
+
+### 2048
+
+Puzzle numérico com pontuação, recorde e partida salvos automaticamente.
+
+- Deslize no celular, use setas / WASD ou os botões de direção.
+- Blocos iguais se fundem uma vez por movimento. Só movimentos válidos geram uma nova peça (90% de chance de 2, 10% de 4).
+- Desfaça uma jogada, incluindo o estado do sorteio, para experimentar outra estratégia.
+- Ao alcançar 2048, continue para 4096 e além. Há confirmação para reiniciar e pausa por botão / Esc.
+
 
 ### Lazuli Blocks
 
@@ -81,6 +101,10 @@ Rebata a bolinha com a raquete e limpe três fases de gemas, com três vidas.
 | `1` `2` `3` | Seleciona a peça | Seleciona a pilha | - |
 | Setas · `A`/`D` | Movem e colocam | Movem o cursor e colocam | Movem o Puga para a esquerda e direita |
 | `Esc` | Cancela | Cancela ou pausa | Pausa |
+
+## Atualizações e carregamento
+
+O aplicativo verifica atualizações do service worker ao abrir e recarrega quando uma nova versão assume o controle. Se uma aba antiga solicitar um chunk removido por um deploy, uma recuperação tenta recarregar uma vez, com limite de 60 segundos para evitar loops. Sem conexão, o erro permanece com opção de tentar novamente; os dados locais não são apagados.
 
 ## Stack
 

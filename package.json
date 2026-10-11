@@ -3,7 +3,7 @@
   "private": true,
   "version": "2.1.0",
   "type": "module",
-  "description": "Seis jogos casuais para celular e desktop, com PWA offline e recordes locais.",
+  "description": "Oito jogos de estratégia, lógica e ação, com PWA offline e partidas salvas.",
   "author": {
     "name": "Renan Augusto dos Santos",
     "url": "https://renanaugusto.com.br"

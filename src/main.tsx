@@ -4,6 +4,7 @@ import './shared/ui/styles/base.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ArcadeApp } from './app/ArcadeApp';
+import { installLoadingRecovery } from './app/recoverLoading';
 import { LAZULI_STORE, readLegacySound } from './games/lazuli-blocks/application/profile';
 import type { ArcadeServices } from './shared/application/arcade';
 import type { KeyValueStore } from './shared/application/ports';
@@ -40,6 +41,7 @@ const services: ArcadeServices = { openStore, audio, seedSource: cryptoSeed, set
 
 const container = document.getElementById('root');
 if (!container) throw new Error('Missing #root element');
+installLoadingRecovery();
 
 createRoot(container).render(
   <StrictMode>
