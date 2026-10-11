@@ -23,7 +23,7 @@ export default function NightGame({services,onExit}:GameProps){
   const drag=useRef<{id:number;x:number;y:number}|null>(null),timers=useRef({hud:0,ambient:0,step:0,enemy:0,heart:0,haunt:15});
   const notice=useRef({text:'',until:0});
   const [phase,setPhase]=useState<Phase>('ready'),[hud,setHud]=useState<Hud>(initialHud),[help,setHelp]=useState(false),[map,setMap]=useState(false);
-  const [controls,setControls]=useState(()=>window.matchMedia('(pointer:coarse)').matches),[run,setRun]=useState(false),[graphicsError,setGraphicsError]=useState<string|null>(null);
+  const [controls,setControls]=useState(()=>window.matchMedia('(pointer:coarse)').matches),[run,setRun]=useState(false),[graphicsError,setGraphicsError]=useState<string|null>(null),[software,setSoftware]=useState(false);
   const visible=useDocumentVisible(),reduced=useReducedMotion();const {finish}=useGameRecord(services,'ultimo-espetaculo:v1');
   const pause=useCallback(()=>{setPhase(v=>v==='playing'?'paused':v==='paused'?'playing':v);},[]);
   const cue=(event:HorrorEvent)=>{
@@ -39,6 +39,7 @@ export default function NightGame({services,onExit}:GameProps){
   };
   const act=()=>{if(phase!=='playing'||help)return;game.current=interactMansion(game.current);cue(game.current.event);};
   const keyAction=useEffectEvent(act),keyTorch=useEffectEvent(()=>{if(phase==='playing')game.current=toggleFlashlight(game.current);});
+  const paint=useEffectEvent((renderer:ReturnType<typeof createMansionRenderer>,time:number)=>{if(phase!=='ready')renderer.draw(game.current,time,reduced);});
   const frame=useEffectEvent((dt:number,time:number)=>{
     const active=phase==='playing'&&!help&&visible;
     if(active){
@@ -58,13 +59,13 @@ export default function NightGame({services,onExit}:GameProps){
   useEffect(()=>{
     const element=canvas.current;if(!element)return undefined;
     let renderer:ReturnType<typeof createMansionRenderer>;
-    try{renderer=createMansionRenderer(element,clown);}catch(error){const message=error instanceof Error?error.message:'Não foi possível abrir os gráficos 3D.';queueMicrotask(()=>{setGraphicsError(message);});return undefined;}
-    let raf=0,previous=performance.now();
-    const draw=(now:number)=>{const dt=Math.min((now-previous)/1000,.05);previous=now;if(document.visibilityState==='visible'){frame(dt,now/1000);renderer.draw(game.current,now/1000,reduced);}raf=requestAnimationFrame(draw);};
-    const lost=(event:Event)=>{event.preventDefault();setGraphicsError('Os gráficos 3D foram interrompidos. Recarregue para tentar novamente.');setPhase('paused');};
+    try{renderer=createMansionRenderer(element,clown,software);}catch(error){const message=error instanceof Error?error.message:'Não foi possível abrir os gráficos 3D.';queueMicrotask(()=>{if(!software)setSoftware(true);else setGraphicsError(message);});return undefined;}
+    let raf=0,previous=performance.now(),painted=0;
+    const draw=(now:number)=>{const dt=Math.min((now-previous)/1000,.05);previous=now;if(document.visibilityState==='visible'){frame(dt,now/1000);if(now-painted>33){painted=now;paint(renderer,now/1000);}}raf=requestAnimationFrame(draw);};
+    const lost=(event:Event)=>{event.preventDefault();setSoftware(true);setPhase('paused');};
     element.addEventListener('webglcontextlost',lost);raf=requestAnimationFrame(draw);
     return()=>{cancelAnimationFrame(raf);renderer.dispose();element.removeEventListener('webglcontextlost',lost);};
-  },[reduced]);
+  },[reduced,software]);
   useEffect(()=>{
     const held=keys.current,starts=keyStarts.current,queued=pulses.current;
     const down=(event:KeyboardEvent)=>{
@@ -87,7 +88,7 @@ export default function NightGame({services,onExit}:GameProps){
   const objective=hud.door?'Atravesse a porta do hall':hud.pieces===3?'Monte a caixa de música no hall':`Encontre as peças · ${hud.pieces}/3`;
   return <div className={styles.horror}><SceneFrame services={services} onExit={onExit} title="Último Espetáculo" eyebrow="Terror em primeira pessoa" paused={phase==='paused'} onPause={pause}>
     <div className={styles.stage} data-hidden={hud.hidden} data-reduced={reduced}>
-      <canvas ref={canvas} className={styles.canvas} tabIndex={0} role="img" aria-label={`Mansão em primeira pessoa. ${hud.pieces} de 3 peças. ${hud.hidden?'Escondido no armário.':hud.chasing?'O palhaço está perseguindo você.':'Explore os quartos.'}`}
+      <canvas key={software?'software':'auto'} ref={canvas} className={styles.canvas} tabIndex={0} role="img" aria-label={`Mansão em primeira pessoa. ${hud.pieces} de 3 peças. ${hud.hidden?'Escondido no armário.':hud.chasing?'O palhaço está perseguindo você.':'Explore os quartos.'}`}
         onPointerDown={event=>{if(phase!=='playing'||event.button!==0)return;drag.current={id:event.pointerId,x:event.clientX,y:event.clientY};event.currentTarget.setPointerCapture(event.pointerId);}}
         onPointerMove={event=>{const p=drag.current;if(p?.id!==event.pointerId||phase!=='playing')return;game.current=lookMansion(game.current,(event.clientX-p.x)*.006,-(event.clientY-p.y)*.0035);drag.current={id:event.pointerId,x:event.clientX,y:event.clientY};}}
         onPointerUp={()=>{drag.current=null;}} onPointerCancel={()=>{drag.current=null;}} />

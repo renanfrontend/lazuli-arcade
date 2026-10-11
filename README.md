@@ -12,7 +12,7 @@ Terror em primeira pessoa e oito clássicos para celular e desktop, em React e T
 
 Terror em primeira pessoa numa mansão abandonada, com bonecas que acompanham seu olhar e um palhaço perseguidor. Encontre três peças da caixa de música, volte ao hall para montar o mecanismo e escape pela porta.
 
-- Cenário 3D em WebGL, com materiais deteriorados, painéis de madeira, cortinas, móveis, brinquedos, lustres e lanterna dinâmica.
+- Cenário em primeira pessoa em WebGL, com materiais deteriorados, painéis de madeira, cortinas, móveis, brinquedos, lustres e lanterna dinâmica. Renderização por perspectiva em canvas mantém a mesma partida disponível em navegadores sem WebGL.
 - WASD anda; arraste a tela para olhar ou use as setas esquerda/direita. Shift corre, E interage, F liga a lanterna, M abre o mapa e Esc pausa.
 - Controles na tela permitem segurar para caminhar ou tocar para dar um passo; há botões de câmera, corrida e interação.
 - O palhaço desperta após a primeira peça, navega pelas portas, vê a lanterna e escuta corridas. Armários escondem você se ele não presenciou sua entrada.

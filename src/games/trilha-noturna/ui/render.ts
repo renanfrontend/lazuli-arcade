@@ -1,4 +1,5 @@
 import { EXIT, FLOORPLAN, LOCKERS, MUSIC_BOX, RELICS, TILE, type MansionState } from '../domain/game';
+import { createSoftwareRenderer } from './software';
 
 interface Mesh { readonly buffer: WebGLBuffer; readonly count: number; readonly texture: WebGLTexture }
 interface Surface { readonly data: number[]; readonly texture: WebGLTexture }
@@ -71,8 +72,9 @@ function textureCanvas(kind:'wall'|'wood'|'ceiling'|'cloth'|'plain'):HTMLCanvasE
   return c;
 }
 export interface MansionRenderer { readonly draw:(state:MansionState,time:number,reduced:boolean)=>void; readonly dispose:()=>void }
-export function createMansionRenderer(canvas:HTMLCanvasElement,clownUrl:string):MansionRenderer {
-  const gl=canvas.getContext('webgl',{alpha:false,antialias:true,powerPreference:'high-performance'});if(!gl)throw new Error('Este navegador não disponibilizou gráficos 3D.');
+export function createMansionRenderer(canvas:HTMLCanvasElement,clownUrl:string,software=false):MansionRenderer {
+  if(software)return createSoftwareRenderer(canvas,clownUrl,textureCanvas);
+  const gl=canvas.getContext('webgl',{alpha:false,antialias:true,powerPreference:'high-performance'});if(!gl)return createSoftwareRenderer(canvas,clownUrl,textureCanvas);
   const resources:{buffers:WebGLBuffer[];textures:WebGLTexture[]}={buffers:[],textures:[]};let disposed=false;
   const shader=(type:number,source:string)=>{const s=gl.createShader(type);if(!s)throw new Error('Não foi possível preparar os gráficos.');gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){const error=gl.getShaderInfoLog(s);gl.deleteShader(s);throw new Error(error??'Falha ao preparar os gráficos.');}return s;};
   const vs=shader(gl.VERTEX_SHADER,vertexSource),fs=shader(gl.FRAGMENT_SHADER,fragmentSource),program=gl.createProgram();
