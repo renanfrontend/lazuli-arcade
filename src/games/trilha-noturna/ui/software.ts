@@ -1,4 +1,4 @@
-import { EXIT, FLOORPLAN, LOCKERS, MUSIC_BOX, RELICS, TILE, type MansionState } from '../domain/game';
+import { EXIT, FLOORPLAN, LOCKERS, MUSIC_BOX, NOTES, RELICS, SAFE, TILE, type MansionState } from '../domain/game';
 interface Renderer { readonly draw:(state:MansionState,time:number,reduced:boolean)=>void;readonly dispose:()=>void }
 type TextureFactory=(kind:'wall'|'wood'|'ceiling'|'cloth'|'plain')=>HTMLCanvasElement;
 interface Sprite { readonly x:number;readonly z:number;readonly y:number;readonly width:number;readonly height:number;readonly image:HTMLCanvasElement|HTMLImageElement;readonly glow:boolean }
@@ -10,7 +10,7 @@ export function createSoftwareRenderer(canvas:HTMLCanvasElement,clownUrl:string,
   const clown=new Image();clown.src=clownUrl;let disposed=false,frame:ImageData|null=null,depths=new Float32Array(1);
   const lightCache=new Map<HTMLCanvasElement|HTMLImageElement,HTMLCanvasElement[]>();
   const shaded=(image:HTMLCanvasElement|HTMLImageElement,light:number)=>{const level=Math.min(3,Math.max(0,Math.floor(light*4)));if(level===3)return image;let versions=lightCache.get(image);if(!versions){versions=[];for(const brightness of [.25,.5,.75]){const copy=document.createElement('canvas');copy.width=image.width;copy.height=image.height;const painter=copy.getContext('2d');if(painter){painter.drawImage(image,0,0);painter.globalCompositeOperation='source-atop';painter.fillStyle='rgba(0,0,0,'+(1-brightness).toString()+')';painter.fillRect(0,0,copy.width,copy.height);}versions.push(copy);}lightCache.set(image,versions);}return versions[level]??image;};
-  const makeProp=(kind:'wardrobe'|'dresser'|'doll'|'key'|'horse'|'box'):HTMLCanvasElement=>{
+  const makeProp=(kind:'wardrobe'|'dresser'|'doll'|'key'|'horse'|'box'|'note'|'safe'):HTMLCanvasElement=>{
     const c=document.createElement('canvas');c.width=256;c.height=512;const g=c.getContext('2d');if(!g)return c;
     g.shadowColor='#000';g.shadowBlur=10;
     if(kind==='wardrobe'||kind==='dresser'){
@@ -24,13 +24,17 @@ export function createSoftwareRenderer(canvas:HTMLCanvasElement,clownUrl:string,
       const dress=g.createLinearGradient(50,250,195,410);dress.addColorStop(0,'#55483b');dress.addColorStop(1,'#292423');g.fillStyle=dress;g.beginPath();g.moveTo(90,239);g.lineTo(162,239);g.lineTo(218,412);g.lineTo(38,412);g.closePath();g.fill();g.fillStyle='#aca18c';g.beginPath();g.ellipse(65,310,14,55,.2,0,Math.PI*2);g.ellipse(186,310,14,55,-.2,0,Math.PI*2);g.fill();g.fillStyle='#25201a';g.fillRect(70,400,36,88);g.fillRect(150,400,36,88);
     }else if(kind==='key'){
       const halo=g.createRadialGradient(128,245,5,128,245,115);halo.addColorStop(0,'#ffe7a8a0');halo.addColorStop(1,'#ffc97800');g.fillStyle=halo;g.fillRect(0,100,256,300);g.shadowColor='#d3a745';g.shadowBlur=25;g.strokeStyle='#d2a856';g.lineWidth=15;g.beginPath();g.arc(109,224,34,0,Math.PI*2);g.moveTo(130,250);g.lineTo(192,310);g.lineTo(211,291);g.stroke();g.shadowBlur=0;g.strokeStyle='#fff0b6';g.lineWidth=3;g.beginPath();g.arc(105,220,33,Math.PI,Math.PI*1.75);g.stroke();
+    }else if(kind==='note'){
+      const halo=g.createRadialGradient(128,300,5,128,300,110);halo.addColorStop(0,'#fff3c8a0');halo.addColorStop(1,'#fff3c800');g.fillStyle=halo;g.fillRect(0,170,256,260);g.fillStyle='#e9e0c4';g.save();g.translate(128,300);g.rotate(-.12);g.fillRect(-52,-70,104,140);g.fillStyle='#7a6b4d';for(let y=-48;y<50;y+=16)g.fillRect(-38,y,76,3);g.restore();
+    }else if(kind==='safe'){
+      g.fillStyle='#2b2d31';g.fillRect(30,160,196,330);g.fillStyle='#45484e';g.fillRect(44,176,168,298);g.strokeStyle='#17181a';g.lineWidth=6;g.strokeRect(44,176,168,298);g.fillStyle='#b8924f';g.beginPath();g.arc(128,300,34,0,Math.PI*2);g.fill();g.fillStyle='#4d3a1b';g.beginPath();g.arc(128,300,22,0,Math.PI*2);g.fill();g.fillStyle='#d8b565';g.fillRect(124,270,8,24);g.fillRect(168,330,22,8);
     }else if(kind==='box'){
       g.fillStyle='#5e4224';g.fillRect(34,290,188,158);g.strokeStyle='#bf9356';g.lineWidth=5;g.strokeRect(37,294,182,152);g.fillStyle='#916c39';g.fillRect(28,274,200,23);g.fillStyle='#25170f';g.fillRect(112,350,33,29);g.fillStyle='#d5b96a';g.fillRect(123,357,10,16);
     }else{
       g.fillStyle='#6d5438';g.fillRect(58,257,132,66);g.fillRect(169,179,40,117);g.fillRect(153,170,79,36);for(const x of [68,168])g.fillRect(x,316,11,127);g.strokeStyle='#4a3622';g.lineWidth=17;g.beginPath();g.moveTo(24,439);g.quadraticCurveTo(128,475,236,439);g.stroke();g.fillStyle='#231b16';g.fillRect(214,178,5,7);
     }return c;
   };
-  const props={wardrobe:makeProp('wardrobe'),dresser:makeProp('dresser'),doll:makeProp('doll'),key:makeProp('key'),horse:makeProp('horse'),box:makeProp('box')};
+  const props={wardrobe:makeProp('wardrobe'),dresser:makeProp('dresser'),doll:makeProp('doll'),key:makeProp('key'),horse:makeProp('horse'),box:makeProp('box'),note:makeProp('note'),safe:makeProp('safe')};
   return {
     draw(state,time,reduced){
       if(disposed)return;const rect=canvas.getBoundingClientRect(),width=Math.max(240,Math.min(600,Math.round(rect.width*.6))),height=Math.max(200,Math.round(width*rect.height/Math.max(1,rect.width)));
@@ -56,8 +60,9 @@ export function createSoftwareRenderer(canvas:HTMLCanvasElement,clownUrl:string,
         ctx.drawImage(wall,texX,0,2,512,x,top,2,h);ctx.drawImage(wood,texX,0,2,512,x,woodTop,2,bottom-woodTop);ctx.fillStyle='#806343';ctx.fillRect(x,woodTop-2,2,3);
         const beam=Math.exp(-cameraX*cameraX*3.3),torch=state.flashlight?beam*1.6/(1+.055*dist*dist):0,emergency=.28/(1+Math.abs(p.z+dz*dist-35)*.28),light=Math.min(.94,(.07+torch+emergency)*(side===0?.84:1)*Math.exp(-dist*.045));ctx.fillStyle=`rgba(0,0,0,${1-light})`;ctx.fillRect(x,top,2,h);ctx.fillStyle=`rgba(124,17,12,${emergency*.28})`;ctx.fillRect(x,top,2,h);
       }
-      const sprites:Sprite[]=[...LOCKERS.map(l=>({x:l.x,z:l.z+.8,y:0,width:1.4,height:2.4,image:props.wardrobe,glow:false})),...RELICS.map(l=>({x:l.x,z:l.z+.75,y:0,width:1.25,height:1.05,image:props.dresser,glow:false})),{x:MUSIC_BOX.x,z:MUSIC_BOX.z,y:.85,width:.65,height:.55,image:props.box,glow:true},{x:30,z:33,y:0,width:1.4,height:1.45,image:props.horse,glow:false}];
+      const sprites:Sprite[]=[...LOCKERS.map(l=>({x:l.x,z:l.z+.8,y:0,width:1.4,height:2.4,image:props.wardrobe,glow:false})),...[...RELICS,...NOTES].map(l=>({x:l.x,z:l.z+.75,y:0,width:1.25,height:1.05,image:props.dresser,glow:false})),{x:SAFE.x,z:SAFE.z,y:0,width:.9,height:1.3,image:props.safe,glow:false},{x:MUSIC_BOX.x,z:MUSIC_BOX.z,y:.85,width:.65,height:.55,image:props.box,glow:true},{x:30,z:33,y:0,width:1.4,height:1.45,image:props.horse,glow:false}];
       for(const [x,z]of [[5,35],[5,9],[30,7],[32,21],[5,21],[32,35]])sprites.push({x:x??5,z:z??35,y:0,width:.55,height:.9,image:props.doll,glow:false});
+      NOTES.forEach((n,i)=>{sprites.push({x:n.x,z:n.z+.5,y:.9,width:.5,height:.55,image:props.note,glow:!state.notes[i]});});
       RELICS.forEach((r,i)=>{if(!state.collected[i])sprites.push({x:r.x,z:r.z,y:.93+(reduced?0:Math.sin(time*2+i)*.02),width:.48,height:.55,image:props.key,glow:true});});
       if(state.enemy.awake&&clown.complete&&clown.naturalWidth){let x=state.enemy.x,z=state.enemy.z;if(state.status==='caught'){x=p.x+fx*.8;z=p.z+fy*.8;}sprites.push({x,z,y:reduced?0:Math.sin(time*6)*.02,width:1.8,height:2.7,image:clown,glow:false});}
       sprites.sort((a,b)=>(b.x-p.x)*fx+(b.z-p.z)*fy-((a.x-p.x)*fx+(a.z-p.z)*fy));

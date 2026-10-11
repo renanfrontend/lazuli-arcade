@@ -1,4 +1,4 @@
-import { EXIT, FLOORPLAN, LOCKERS, MUSIC_BOX, RELICS, TILE, type MansionState } from '../domain/game';
+import { EXIT, FLOORPLAN, LOCKERS, MUSIC_BOX, NOTES, RELICS, SAFE, TILE, type MansionState } from '../domain/game';
 import { createSoftwareRenderer } from './software';
 
 interface Mesh { readonly buffer: WebGLBuffer; readonly count: number; readonly texture: WebGLTexture }
@@ -94,7 +94,7 @@ export function createMansionRenderer(canvas:HTMLCanvasElement,clownUrl:string,s
   box(cloth,19,.006,21,2.8,.008,35,[.55,.39,.27]);
   for(const z of [7,19,33])for(const x of [15,23]){box(wood,x,.95,z-.85,.13,1.9,.13,WOOD);box(wood,x,.95,z+.85,.13,1.9,.13,WOOD);box(wood,x,2.6,z,2.06,.3,2.08,WOOD);}
   for(const l of LOCKERS){box(wood,l.x,1.18,l.z+.8,1.3,2.36,.65,[.38,.36,.29]);box(wood,l.x,1.18,l.z+.46,1.19,2.15,.04,[.5,.42,.29]);box(plain,l.x-.04,1.1,l.z+.425,.05,.11,.04,BRASS);box(wood,l.x,2.38,l.z+.8,1.5,.1,.8,WOOD);}
-  for(const relic of RELICS){box(wood,relic.x,.53,relic.z+.75,1.25,1.05,.8,WOOD);for(let i=0;i<3;i++){box(wood,relic.x,.23+i*.3,relic.z+.335,1.12,.25,.04,[.44,.32,.21]);box(plain,relic.x,.23+i*.3,relic.z+.3,.17,.03,.05,BRASS);}}
+  for(const relic of [...RELICS,...NOTES]){box(wood,relic.x,.53,relic.z+.75,1.25,1.05,.8,WOOD);for(let i=0;i<3;i++){box(wood,relic.x,.23+i*.3,relic.z+.335,1.12,.25,.04,[.44,.32,.21]);box(plain,relic.x,.23+i*.3,relic.z+.3,.17,.03,.05,BRASS);}}
   box(wood,MUSIC_BOX.x,.45,MUSIC_BOX.z+.25,1.1,.9,.65,WOOD);box(plain,MUSIC_BOX.x,.99,MUSIC_BOX.z,.53,.2,.4,BRASS);
   // Cold windows, curtains, iron chandeliers and crooked frame-like wall ornaments.
   for(const z of [7,19,33])for(const x of [2.035,35.965]){
@@ -127,6 +127,10 @@ export function createMansionRenderer(canvas:HTMLCanvasElement,clownUrl:string,s
       if(!state.doorOpen){box(props,EXIT.x,1.35,40.015,2.4,2.7,.04,[.2,.12,.08]);box(props,EXIT.x+.7,1.2,39.975,.035,.13,.035,BRASS);}
       else box(props,EXIT.x,1.25,40.015,2.4,2.5,.04,[.32,.44,.35],1);
       RELICS.forEach((p,i)=>{if(state.collected[i])return;const y=1.22+(reduced?0:Math.sin(time*2+i)*.025);box(props,p.x,y,p.z,.16,.16,.17,[1,.77,.28],.3);ball(props,p.x,y+.13,p.z,.09,[1,.83,.5],.22);box(props,p.x+.16,y,p.z,.22,.025,.025,BRASS,.25);});
+      NOTES.forEach((n,i)=>{const read=state.notes[i]??false;box(props,n.x,1.075,n.z+.6,.34,.015,.24,[.93,.89,.76],read?.04:.5+(reduced?0:Math.sin(time*3+i)*.12));});
+      box(props,SAFE.x,.62,SAFE.z,.8,1.24,.74,[.16,.17,.19]);
+      if(state.safeOpen){box(props,SAFE.x-.18,.62,SAFE.z,.44,1.0,.6,[.015,.015,.02]);box(props,SAFE.x-.52,.62,SAFE.z+.55,.05,1.2,.5,[.28,.29,.31]);box(props,SAFE.x-.4,.35,SAFE.z,.3,.05,.2,[.9,.7,.3],state.collected[1]?0:.45);}
+      else{box(props,SAFE.x-.4,.62,SAFE.z,.05,1.1,.66,[.27,.28,.31]);ball(props,SAFE.x-.45,.7,SAFE.z,.11,BRASS,.12);box(props,SAFE.x-.45,.5,SAFE.z+.18,.04,.04,.12,BRASS);}
       for(const [x,z]of [[5,35],[5,9],[30,7],[32,21],[5,21],[32,35]]){
         const xx=x??5,zz=z??35;box(props,xx,.22,zz,.34,.44,.25,[.44,.35,.31]);ball(props,xx,.56,zz,.18,WHITE);const toward=Math.atan2(state.player.x-xx,state.player.z-zz),s=Math.sin(toward),c=Math.cos(toward);for(const eye of [-1,1]){ball(props,xx+s*.14+c*eye*.06,.6,zz+c*.14-s*eye*.06,.025,[.025,.021,.016]);}box(props,xx,.11,zz+.18,.27,.12,.35,[.17,.1,.08]);
       }
