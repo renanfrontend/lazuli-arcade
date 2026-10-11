@@ -1,69 +1,67 @@
 import { describe, expect, it } from 'vitest';
-import { CHARACTERS, getCharacter, getCharacterByLevel } from '../characters';
+import { DEFAULT_RULES } from '../rules';
 import {
-  advanceTournament,
+  championOf,
   createTournament,
-  getActiveTournamentMatch,
+  currentRound,
+  nextRival,
+  pairingsOf,
+  recordPlayerResult,
+  ROUNDS,
+  statusOf,
 } from '../tournament';
 
-describe('characters', () => {
-  it('defines all 6 animal characters requested', () => {
-    const ids = CHARACTERS.map((c) => c.id);
-    expect(ids).toContain('tata');
-    expect(ids).toContain('rabito');
-    expect(ids).toContain('lobo');
-    expect(ids).toContain('porquinha');
-    expect(ids).toContain('puga');
-    expect(ids).toContain('elefantinho');
-    expect(CHARACTERS.length).toBe(6);
-  });
-
-  it('provides distinct bot profiles for each character', () => {
-    const tata = getCharacter('tata');
-    const rabito = getCharacter('rabito');
-    expect(tata.bot.thinkMs).toBeGreaterThan(rabito.bot.thinkMs);
-  });
-
-  it('cycles characters through levels', () => {
-    expect(getCharacterByLevel(1).id).toBe('tata');
-    expect(getCharacterByLevel(2).id).toBe('rabito');
-    expect(getCharacterByLevel(3).id).toBe('lobo');
-  });
-});
-
 describe('tournament', () => {
-  it('creates an 8-competitor tournament bracket', () => {
-    const tour = createTournament();
-    expect(tour.status).toBe('in_progress');
-    expect(tour.currentRound).toBe(0);
-    expect(tour.matches.length).toBe(4);
-
-    const active = getActiveTournamentMatch(tour);
-    expect(active).not.toBeNull();
-    expect(active?.competitor1.isPlayer).toBe(true);
+  it('seats the player and seven distinct cast members', () => {
+    const tournament = createTournament(DEFAULT_RULES, 99);
+    expect(tournament.slots).toHaveLength(8);
+    expect(new Set(tournament.slots).size).toBe(8);
+    expect(tournament.slots).toContain('player');
   });
 
-  it('advances player to semifinals when winning quarterfinal', () => {
-    const tour = createTournament();
-    const next = advanceTournament(tour, true, 370, 220);
-    expect(next.currentRound).toBe(1);
-    expect(next.status).toBe('in_progress');
-    expect(next.matches.length).toBe(6);
+  it('is deterministic for a seed', () => {
+    expect(createTournament(DEFAULT_RULES, 5)).toEqual(createTournament(DEFAULT_RULES, 5));
   });
 
-  it('marks tournament as eliminated when player loses', () => {
-    const tour = createTournament();
-    const next = advanceTournament(tour, false, 200, 370);
-    expect(next.status).toBe('eliminated');
+  it('simulates other matches and waits on the player', () => {
+    const tournament = createTournament(DEFAULT_RULES, 7);
+    const round = pairingsOf(tournament, 0);
+    expect(round).toHaveLength(4);
+    const mine = round.filter((pairing) => pairing.a === 'player' || pairing.b === 'player');
+    expect(mine).toHaveLength(1);
+    expect(mine[0]?.winner).toBeNull();
+    expect(round.filter((pairing) => pairing.winner !== null)).toHaveLength(3);
+    expect(statusOf(tournament)).toBe('playing');
+    expect(nextRival(tournament)).not.toBeNull();
   });
 
-  it('awards trophy when winning the final', () => {
-    let tour = createTournament(0);
-    tour = advanceTournament(tour, true, 370, 200);
-    tour = advanceTournament(tour, true, 370, 250);
-    tour = advanceTournament(tour, true, 370, 310);
+  it('crowns the player after three wins', () => {
+    let tournament = createTournament(DEFAULT_RULES, 21);
+    for (let round = 0; round < ROUNDS; round += 1) {
+      expect(currentRound(tournament)).toBe(round);
+      expect(nextRival(tournament)).not.toBeNull();
+      tournament = recordPlayerResult(DEFAULT_RULES, tournament, true);
+    }
+    expect(statusOf(tournament)).toBe('champion');
+    expect(championOf(tournament)).toBe('player');
+    expect(nextRival(tournament)).toBeNull();
+  });
 
-    expect(tour.status).toBe('won');
-    expect(tour.trophiesCount).toBe(1);
+  it('eliminates the player on a loss and still finishes the bracket', () => {
+    let tournament = createTournament(DEFAULT_RULES, 21);
+    tournament = recordPlayerResult(DEFAULT_RULES, tournament, true);
+    const rival = nextRival(tournament);
+    tournament = recordPlayerResult(DEFAULT_RULES, tournament, false);
+    expect(statusOf(tournament)).toBe('eliminated');
+    expect(currentRound(tournament)).toBe(ROUNDS);
+    expect(championOf(tournament)).not.toBe('player');
+    expect(championOf(tournament)).not.toBeNull();
+    expect(rival).not.toBeNull();
+  });
+
+  it('ignores results once the bracket is over', () => {
+    let tournament = createTournament(DEFAULT_RULES, 3);
+    tournament = recordPlayerResult(DEFAULT_RULES, tournament, false);
+    expect(recordPlayerResult(DEFAULT_RULES, tournament, true)).toBe(tournament);
   });
 });

@@ -1,181 +1,86 @@
-import type { BotProfile } from './rules';
+import { castMember, type CastId, type CastMember } from '@shared/cast/cast';
 
-export type CharacterId = 'tata' | 'rabito' | 'lobo' | 'porquinha' | 'puga' | 'elefantinho';
-
-export interface CharacterDialogue {
-  readonly onStart: string;
-  readonly onThinking: string;
-  readonly onPlace: string;
-  readonly onScore: string;
-  readonly onPlayerScore: string;
-  readonly onWin: string;
-  readonly onLose: string;
+/** How a rival plays: how fast, how well, and what it cares about. */
+export interface BotProfile {
+  /** Average pause before each of its placements. */
+  readonly thinkMs: number;
+  /** Random spread added to each pause (±). */
+  readonly jitterMs: number;
+  /** 0..1: how often it takes its best move instead of a decent one. */
+  readonly skill: number;
+  /** Multipliers on what its move evaluation cares about; 1 is balanced. */
+  readonly style: { readonly points: number; readonly room: number; readonly potential: number };
 }
 
-export interface Character {
-  readonly id: CharacterId;
-  readonly name: string;
-  readonly title: string;
-  readonly animal: string;
-  readonly bio: string;
-  readonly catchphrase: string;
-  readonly primaryColor: string;
-  readonly accentColor: string;
+/** A cast member sitting on the other side of the board. */
+export interface Rival {
+  readonly id: CastId;
+  /** 1 (easiest) to 8: also widens the tile palette. */
+  readonly tier: number;
   readonly bot: BotProfile;
-  readonly dialogues: CharacterDialogue;
+  /** What the rival says before the first move and after the result. */
+  readonly lines: { readonly start: string; readonly win: string; readonly lose: string };
 }
 
-export const CHARACTERS: readonly [Character, ...Character[]] = [
+const style = (points = 1, room = 1, potential = 1) => ({ points, room, potential });
+
+export const RIVALS: readonly Rival[] = [
   {
     id: 'tata',
-    name: 'Tatá',
-    title: 'A Tartaruga Paciente',
-    animal: 'Tartaruga',
-    bio: 'Joga devagar, mas com extrema precisão e planejamento de longo prazo.',
-    catchphrase: 'Devagar e sempre! Cada peça no seu devido lugar.',
-    primaryColor: '#2b8a3e',
-    accentColor: '#8ce99a',
-    bot: {
-      thinkMs: 2700,
-      jitterMs: 400,
-      skill: 0.88,
-    },
-    dialogues: {
-      onStart: 'Oi! Vamos jogar com calma e sem pressa!',
-      onThinking: 'Pensando na melhor jogada com meu casco...',
-      onPlace: 'Encaixe firme e seguro!',
-      onScore: 'Paciência traz grandes recompensas!',
-      onPlayerScore: 'Bela jogada! Mas ainda tenho muito fôlego.',
-      onWin: 'A tartaruga cruzou a linha de chegada primeiro!',
-      onLose: 'Parabéns! Sua estratégia foi admirável.',
-    },
+    tier: 1,
+    bot: { thinkMs: 2900, jitterMs: 900, skill: 0.3, style: style(0.8, 1.6, 0.6) },
+    lines: { start: 'Sem pressa, tá? Eu chego lá.', win: 'Eu disse: devagar e sempre!', lose: 'Uau… você foi mais rápido que eu.' },
   },
   {
-    id: 'rabito',
-    name: 'Rabito',
-    title: 'O Coelho Acelerado',
-    animal: 'Coelho',
-    bio: 'Veloz como um relâmpago! Mal espera a vez e joga por impulso em busca de combos.',
-    catchphrase: 'Pula, corre e empilha! Nem pisca que eu já joguei!',
-    primaryColor: '#e8590c',
-    accentColor: '#ffd8a8',
-    bot: {
-      thinkMs: 1350,
-      jitterMs: 250,
-      skill: 0.68,
-    },
-    dialogues: {
-      onStart: 'Bora que o cronômetro não para!',
-      onThinking: 'Rápido, rápido, achei!',
-      onPlace: 'Pula e encaixa!',
-      onScore: 'Combo relâmpago! Pegou o ritmo?',
-      onPlayerScore: 'Uou! Essa foi rápida, gostei!',
-      onWin: 'Velocidade total! Nem me viu passar!',
-      onLose: 'Puxa, tropecei nas minhas próprias orelhas!',
-    },
-  },
-  {
-    id: 'lobo',
-    name: 'Lobo',
-    title: 'O Lobo Astuto',
-    animal: 'Lobo',
-    bio: 'Observador e perspicaz. Foca em acumular pilhas grandes para limpezas devastadoras.',
-    catchphrase: 'A alcateia nunca erra o cálculo.',
-    primaryColor: '#364fc7',
-    accentColor: '#bac8ff',
-    bot: {
-      thinkMs: 2200,
-      jitterMs: 400,
-      skill: 0.85,
-    },
-    dialogues: {
-      onStart: 'Que vença o estrategista mais afiado.',
-      onThinking: 'Farejando o ponto fraco do tabuleiro...',
-      onPlace: 'O cerco está armado.',
-      onScore: 'Auuuu! Uma limpeza espetacular!',
-      onPlayerScore: 'Você tem garras, admito.',
-      onWin: 'O Lobo mantém o domínio do topo!',
-      onLose: 'Você me surpreendeu. Honra ao vencedor.',
-    },
-  },
-  {
-    id: 'porquinha',
-    name: 'Porquinha',
-    title: 'A Porquinha Poupadeira',
-    animal: 'Porquinha',
-    bio: 'Adora colecionar cores iguais e encher o cofrinho de pontos.',
-    catchphrase: 'Oinc! Cada pontinho bem guardadinho!',
-    primaryColor: '#d6336c',
-    accentColor: '#fcc2d7',
-    bot: {
-      thinkMs: 1900,
-      jitterMs: 350,
-      skill: 0.74,
-    },
-    dialogues: {
-      onStart: 'Oinc! Que dia lindo para empilhar!',
-      onThinking: 'Hummm, onde coloco essa pecinha rosa?',
-      onPlace: 'Guardadinha no meu cantinho!',
-      onScore: 'Oinc oinc! Cofre cheio de pontos!',
-      onPlayerScore: 'Uau, que pilha charmosa!',
-      onWin: 'Vitória fofinha! O cofrinho transbordou!',
-      onLose: 'Foi por pouco! Vou comer um lanchinho e volto!',
-    },
-  },
-  {
-    id: 'puga',
-    name: 'Puga',
-    title: 'O Pug Curioso',
-    animal: 'Pug',
-    bio: 'Super simpático e curioso. Joga com entusiasmo contagiante e fareja combinações.',
-    catchphrase: 'Au au! Brincar de empilhar é bom demais!',
-    primaryColor: '#d97706',
-    accentColor: '#fef08a',
-    bot: {
-      thinkMs: 1700,
-      jitterMs: 450,
-      skill: 0.76,
-    },
-    dialogues: {
-      onStart: 'Au au! Abanando o rabinho pra começar!',
-      onThinking: 'Farejei... tá quase!',
-      onPlace: 'Patada certeira na pilha!',
-      onScore: 'Au au au! Ponto pro cachorrinho!',
-      onPlayerScore: 'Latido de parabéns! Grande jogada!',
-      onWin: 'Mereço um petisco! Ganhei!',
-      onLose: 'Você joga muito! Vamos ser amigos?',
-    },
+    id: 'porquinho',
+    tier: 2,
+    bot: { thinkMs: 2100, jitterMs: 700, skill: 0.42, style: style(1.5, 0.7, 0.8) },
+    lines: { start: 'Vou empilhar tudo que eu puder!', win: 'Oinc! Peguei todos os pontos!', lose: 'Oinc… eu queria mais uma pilha.' },
   },
   {
     id: 'elefantinho',
-    name: 'Elefantinho',
-    title: 'O Elefante Memória de Ferro',
-    animal: 'Elefante',
-    bio: 'Tem memória fotográfica das peças e faz jogadas com impacto estrondoso.',
-    catchphrase: 'Um elefante nunca esquece uma boa combinação!',
-    primaryColor: '#087f5b',
-    accentColor: '#96f2d7',
-    bot: {
-      thinkMs: 2500,
-      jitterMs: 300,
-      skill: 0.92,
-    },
-    dialogues: {
-      onStart: 'Preparado? Minha tromba já decorou o tabuleiro!',
-      onThinking: 'Acessando meus registros de memória...',
-      onPlace: 'Pisão firme no tabuleiro!',
-      onScore: 'Tromba de pontos! Uma enxurrada!',
-      onPlayerScore: 'Boa jogada, registrei na memória!',
-      onWin: 'A marcha triunfal do Elefante!',
-      onLose: 'Foi um duelo memorável! Parabéns!',
-    },
+    tier: 3,
+    bot: { thinkMs: 1900, jitterMs: 600, skill: 0.54, style: style(1, 1.2, 1.4) },
+    lines: { start: 'Eu lembro de cada pilha. Vamos?', win: 'Memória de elefante, lembra?', lose: 'Dessa eu vou lembrar pra sempre.' },
+  },
+  {
+    id: 'puga',
+    tier: 4,
+    bot: { thinkMs: 2300, jitterMs: 1300, skill: 0.62, style: style(1.2, 1, 1) },
+    lines: { start: 'Ronc… ah, é a minha vez?', win: 'Ganhei e nem acordei direito.', lose: 'Mereço uma soneca depois dessa.' },
+  },
+  {
+    id: 'rabito',
+    tier: 5,
+    bot: { thinkMs: 800, jitterMs: 300, skill: 0.62, style: style(1.1, 0.8, 0.9) },
+    lines: { start: 'Piscou? Perdeu uma jogada!', win: 'Rápido demais, né?', lose: 'Ué… eu fui rápido demais?' },
+  },
+  {
+    id: 'raposa',
+    tier: 6,
+    bot: { thinkMs: 1500, jitterMs: 500, skill: 0.78, style: style(1.1, 1, 1.5) },
+    lines: { start: 'Já planejei três jogadas à frente.', win: 'Eu avisei: um passo à frente.', lose: 'Hmm… um truque que eu não previ.' },
+  },
+  {
+    id: 'lobo',
+    tier: 7,
+    bot: { thinkMs: 1350, jitterMs: 400, skill: 0.88, style: style(1.3, 1.1, 1.1) },
+    lines: { start: 'Estou farejando a sua derrota.', win: 'Auuu! A matilha agradece.', lose: 'Respeito. Você sabe jogar.' },
+  },
+  {
+    id: 'coruja',
+    tier: 8,
+    bot: { thinkMs: 1700, jitterMs: 300, skill: 0.97, style: style(1.2, 1.2, 1.2) },
+    lines: { start: 'Calculei esta partida inteira.', win: 'Exatamente como calculei.', lose: 'Isso… não estava nos meus cálculos.' },
   },
 ];
 
-export const getCharacter = (id: CharacterId): Character =>
-  CHARACTERS.find((char) => char.id === id) ?? CHARACTERS[0];
+const BY_ID: ReadonlyMap<CastId, Rival> = new Map(RIVALS.map((rival) => [rival.id, rival]));
 
-export const getCharacterByLevel = (level: number): Character => {
-  const index = Math.max(0, Math.floor(level) - 1) % CHARACTERS.length;
-  return CHARACTERS[index] ?? CHARACTERS[0];
+export const findRival = (id: CastId): Rival => {
+  const rival = BY_ID.get(id);
+  if (!rival) throw new RangeError(`No rival for "${id}"`);
+  return rival;
 };
+
+export const rivalMember = (id: CastId): CastMember => castMember(id);

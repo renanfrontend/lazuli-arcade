@@ -20,14 +20,6 @@ export interface SettleRules {
   readonly mergePoints: number;
 }
 
-export interface BotProfile {
-  /** Average pause between the opponent's moves. */
-  readonly thinkMs: number;
-  /** Random spread added to each pause (±). */
-  readonly jitterMs: number;
-  /** 0..1: how often the opponent takes its best move instead of a decent one. */
-  readonly skill: number;
-}
 
 export interface Rules {
   readonly layout: Layout;
@@ -38,17 +30,17 @@ export interface Rules {
   readonly initialStacks: number;
   readonly target: (level: number) => number;
   readonly palette: (level: number) => readonly TileColor[];
-  readonly bot: (level: number) => BotProfile;
 }
 
 /**
- * 5 x 5 grid drawn as a diamond; the centre opens at 90 points (around the 14th move).
- * Tuned by simulation: with 25 cells good play almost never runs out of room on level 1,
- * while the level-1 opponent fills its board in roughly a third of its games.
+ * 5 x 5 grid drawn as a diamond, shared by both players. The centre opens once the two scores
+ * together reach 100. Tuned by simulation (see the duel tests): the strongest rival beats the
+ * gentlest nine times in ten, and a good share of matches is settled by who is ahead when the
+ * board runs out of room.
  */
 export const DEFAULT_LAYOUT: Layout = {
   rows: ['#####', '#####', '##L##', '#####', '#####'],
-  unlockAt: [90],
+  unlockAt: [100],
 };
 
 const clampLevel = (level: number) => Math.max(1, Math.floor(level));
@@ -73,14 +65,6 @@ export const DEFAULT_RULES: Rules = {
   },
   traySize: 3,
   initialStacks: 4,
-  target: () => 370,
+  target: () => 250,
   palette: (level) => (clampLevel(level) >= 3 ? TILE_COLORS : TILE_COLORS.slice(0, 5)),
-  bot: (level) => {
-    const step = clampLevel(level) - 1;
-    return {
-      thinkMs: Math.max(1700, 3600 - step * 220),
-      jitterMs: 800,
-      skill: Math.min(0.92, 0.45 + step * 0.07),
-    };
-  },
 };

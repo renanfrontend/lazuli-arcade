@@ -1,6 +1,6 @@
 # Lazuli Arcade
 
-Terror em primeira pessoa e oito clássicos para celular e desktop, em React e TypeScript. Um lobby leve, jogos independentes que só baixam quando são abertos e progresso salvo no próprio aparelho. Roda como PWA instalável (offline) e também como um único arquivo HTML autocontido.
+Terror em primeira pessoa e onze jogos para celular e desktop, em React e TypeScript. Um lobby leve, jogos independentes que só baixam quando são abertos e progresso salvo no próprio aparelho. Roda como PWA instalável (offline) e também como um único arquivo HTML autocontido.
 
 **Jogar:** [renanfrontend.github.io/lazuli-arcade](https://renanfrontend.github.io/lazuli-arcade/)
 
@@ -54,22 +54,14 @@ Block puzzle de gemas num tabuleiro 11 × 13. Linhas e colunas completas se desf
 
 ### Empilha
 
-Duelo de pilhas contra um oponente visível em tempo real que joga o próprio tabuleiro ao mesmo tempo que você!
+Duelo de pilhas num **tabuleiro compartilhado**: você e o rival jogam em turnos no mesmo losango 5 × 5, e as peças giram ao pular de uma pilha para outra.
 
-- **Física e Rotação 3D:** ao saltar de pilha em pilha, as peças giram no ar com rotação 3D acrobática em arco parabólico.
-- **Oponente à Vista:** visualize o avatar do oponente, falas e reações em tempo real, sua bandeja animada e o mini-tabuleiro ao vivo com opção de espiar o tabuleiro completo.
-- **Turma de Personagens:** desafie uma turma com personalidades e estilos de IA únicos:
-  - **Tatá (Tartaruga):** paciente e extremamente precisa.
-  - **Rabito (Coelho):** veloz e impulsivo em busca de combos.
-  - **Lobo:** astuto, caçador de pilhas gigantes.
-  - **Porquinha:** organizadora cuidadosa de cores no cofrinho.
-  - **Puga (Pug):** brincalhão, farejador de boas jogadas.
-  - **Elefantinho:** memória de ferro com pisões pesados de pontuação.
-- **Modo Torneio com Chaveamento:** dispute a Copa dos Bichos no sistema mata-mata (Quartas, Semifinais e Grande Final) com chaveamento visual e conquiste o Troféu Ouro!
-- Arraste uma pilha da bandeja até uma casa vazia do tabuleiro (losango 5 × 5).
-- Pilhas vizinhas com o mesmo símbolo no topo se juntam. Dez iguais somam pontos e limpam a pilha.
-- A casa com cadeado abre quando você chega a 90 pontos.
-- Quem chegar a 370 primeiro vence.
+- Cada vez tem três pilhas na bandeja; arraste uma até uma casa vazia. Ao esvaziar a bandeja, a vez passa para o rival, que joga à vista, voando as pilhas dele até o tabuleiro.
+- Pilhas vizinhas com o mesmo símbolo no topo se juntam; dez iguais somem e viram pontos. Limpezas em sequência valem em dobro, em triplo…
+- A casa com cadeado abre quando a soma dos placares chega a 100.
+- Vence quem chegar a 250 primeiro; se o tabuleiro encher, vence quem tiver mais pontos.
+- **Rivais:** Tata (tartaruga), Porquinho, Elefantinho, Puga, Rabito (coelho), Raposa, Lobo e a Coruja, cada um com estilo e fala próprios.
+- **Torneio:** chaveamento de 8 (quartas, semifinal e final) contra rivais sorteados pela seed; o progresso e os títulos ficam salvos.
 
 ### Puga Salta
 
@@ -105,6 +97,10 @@ Rebata a bolinha com a raquete e limpe três fases de gemas, com três vidas.
 - Toque, aperte espaço ou use “Lançar bolinha” para começar cada lançamento.
 - Gemas resistentes nas fases seguintes; o ponto de impacto na raquete define o ângulo.
 - Física com passo fixo, pausa por botão / `Esc` e pontuação salva.
+
+### Memória, Dobra e Frascos
+
+Três jogos curtos que reaproveitam o elenco: **Memória** (pares de personagens), **Dobra** (deslize e junte, estilo 2048, cada nível vira um personagem) e **Frascos** (separe as cores; todo puzzle é gerado com solução garantida por busca).
 
 ### Controles
 

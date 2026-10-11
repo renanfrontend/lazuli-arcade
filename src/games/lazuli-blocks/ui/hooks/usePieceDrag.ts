@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type MouseEvent, type PointerEvent } from 'react';
+import { useCallback, useRef, useState, type MouseEvent, type PointerEvent, type RefObject } from 'react';
 import { nearestValidOrigin, samePosition, type Board, type Position, type TrayPiece } from '../../domain';
 import type { SelectSource } from './usePlacementCursor';
 
@@ -33,7 +33,7 @@ interface DragOptions {
   readonly board: Board;
   readonly enabled: boolean;
   readonly reducedMotion: boolean;
-  readonly gridRef: { readonly current: HTMLElement | null };
+  readonly gridRef: RefObject<HTMLElement | null>;
   readonly onPick: (piece: TrayPiece) => void;
   readonly onDrop: (piece: TrayPiece, origin: Position) => void;
   readonly onCancel: (piece: TrayPiece) => void;

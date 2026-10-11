@@ -224,7 +224,7 @@ interface EffectsLayerProps {
 
 /** Fire-and-forget particles drawn imperatively in a fixed overlay. */
 export function EffectsLayer({ ref, reducedMotion }: EffectsLayerProps) {
-  const rootRef = useRef<HTMLDivElement | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   useImperativeHandle(ref, () => createEffects(() => rootRef.current, reducedMotion), [reducedMotion]);
   return createPortal(<div ref={rootRef} className={styles.layer} aria-hidden="true" />, document.body);
 }

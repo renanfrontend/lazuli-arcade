@@ -1,4 +1,4 @@
-import { useEffectEvent, useLayoutEffect, useRef } from 'react';
+import { useEffectEvent, useLayoutEffect, useRef, type RefObject } from 'react';
 import type { LazuliFeedback } from '../../application/ports';
 import { lineTotal, type GameEvent, type PlacedEvent } from '../../domain';
 import type { EffectsHandle } from '../components/EffectsLayer';
@@ -8,10 +8,10 @@ interface GameEventDeps {
   readonly event: GameEvent | null;
   readonly cols: number;
   readonly feedback: LazuliFeedback;
-  readonly effectsRef: { readonly current: EffectsHandle | null };
-  readonly gridRef: { readonly current: HTMLElement | null };
-  readonly frameRef: { readonly current: HTMLElement | null };
-  readonly coinRef: { readonly current: HTMLElement | null };
+  readonly effectsRef: RefObject<EffectsHandle | null>;
+  readonly gridRef: RefObject<HTMLElement | null>;
+  readonly frameRef: RefObject<HTMLElement | null>;
+  readonly coinRef: RefObject<HTMLElement | null>;
   readonly announce: (message: string) => void;
 }
 

@@ -1,0 +1,135 @@
+.theme {
+  --mg-bg: #fff3dc;
+  --mg-glow: #ffffff;
+  --mg-fg: #3a2a12;
+  --mg-soft: #8a6a3a;
+  --mg-accent: #d9780f;
+  --mg-panel: #ffe2a8;
+  --mg-card: #ffb84d;
+  --mg-card-deep: #d9780f;
+  --focus: #3a2a12;
+  --side: min(calc(100cqw - 32px), calc(100cqh - 140px), 30rem);
+}
+
+@media (prefers-color-scheme: dark) {
+  :global(:root:not([data-theme='light'])) .theme {
+    --mg-bg: #1d1608;
+    --mg-glow: #3a2a10;
+    --mg-fg: #fdf1d8;
+    --mg-soft: #c7a56a;
+    --mg-accent: #ffb84d;
+    --mg-panel: #3a2a10;
+    --mg-card: #c9822a;
+    --mg-card-deep: #7a4a12;
+    --focus: #ffd88a;
+  }
+}
+
+:global(:root[data-theme='dark']) .theme {
+  --mg-bg: #1d1608;
+  --mg-glow: #3a2a10;
+  --mg-fg: #fdf1d8;
+  --mg-soft: #c7a56a;
+  --mg-accent: #ffb84d;
+  --mg-panel: #3a2a10;
+  --mg-card: #c9822a;
+  --mg-card-deep: #7a4a12;
+  --focus: #ffd88a;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(6px, 2cqw, 12px);
+  width: var(--side);
+  height: var(--side);
+}
+
+.card {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  perspective: 700px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.card[aria-disabled='true'] {
+  cursor: default;
+}
+
+.inner {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transition: transform 0.42s cubic-bezier(0.3, 1.2, 0.5, 1);
+}
+
+.card:not([data-face='down']) .inner {
+  transform: rotateY(180deg);
+}
+
+.back,
+.front {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 16%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.back {
+  background: linear-gradient(145deg, var(--mg-card), var(--mg-card-deep));
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--mg-card-deep) 70%, black);
+  color: #fff;
+}
+
+.back svg {
+  width: 60%;
+  height: 60%;
+}
+
+.card:active:not([aria-disabled='true']) .back {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--mg-card-deep) 70%, black);
+}
+
+.front {
+  padding: 8%;
+  background: color-mix(in srgb, var(--tone) 22%, #fff);
+  box-shadow:
+    inset 0 0 0 3px color-mix(in srgb, var(--tone) 70%, transparent),
+    0 4px 0 color-mix(in srgb, var(--tone) 55%, #000);
+  transform: rotateY(180deg);
+}
+
+.card[data-face='matched'] .front {
+  animation: pop 0.45s ease-out;
+}
+
+.card:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+  border-radius: 16%;
+}
+
+@keyframes pop {
+  40% {
+    transform: rotateY(180deg) scale(1.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inner {
+    transition: none;
+  }
+
+  .card[data-face='matched'] .front {
+    animation: none;
+  }
+}

@@ -7,6 +7,7 @@ import {
   type MatchState,
   type Rules,
 } from '../domain';
+import { nextOpponent } from './opponents';
 import type { KeyValueStore, SeedSource } from './ports';
 import { KEYS, loadStats, recordResult, type Stats } from './stats';
 
@@ -24,6 +25,8 @@ export interface MatchStore {
   readonly getState: () => MatchSession;
   readonly subscribe: (listener: () => void) => () => void;
   readonly dispatch: (action: MatchAction) => MatchSession;
+  /** Counts a tournament won. */
+  readonly awardTitle: () => void;
 }
 
 export interface MatchStoreDeps {
@@ -35,7 +38,7 @@ export interface MatchStoreDeps {
 export const loadSession = ({ rules, store, seedSource }: MatchStoreDeps): MatchSession => {
   const stats = loadStats(store);
   const saved = fromSnapshot(store.read(KEYS.match), rules);
-  const match = saved ?? createMatch(rules, { level: stats.level, seed: seedSource(), eventSeq: stats.recordedSeq });
+  const match = saved ?? createMatch(rules, { opponentId: nextOpponent(stats), seed: seedSource(), eventSeq: stats.recordedSeq });
   return { match, stats: recordResult(stats, match) };
 };
 
@@ -65,6 +68,11 @@ export const createMatchStore = (deps: MatchStoreDeps): MatchStore => {
       save(deps.store, session);
       for (const listener of listeners) listener();
       return session;
+    },
+    awardTitle() {
+      session = { ...session, stats: { ...session.stats, titles: session.stats.titles + 1 } };
+      save(deps.store, session);
+      for (const listener of listeners) listener();
     },
   };
 };
