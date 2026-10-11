@@ -13,8 +13,20 @@ export interface HopInput {
   readonly delay: number;
 }
 
+export interface FlyInput {
+  /** Copy of the stack as drawn in the tray. */
+  readonly clone: HTMLElement;
+  /** Where the stack sat in the tray. */
+  readonly rect: DOMRect;
+  /** Centre of the floor tile it lands on. */
+  readonly to: Point;
+  /** Half-width of a board tile. */
+  readonly hw: number;
+}
+
 export interface PopInput {
   readonly at: Point;
+  /** Where the tile's points fly to (the score bar), or null to just burst. */
   readonly to: Point | null;
   readonly color: TileColor;
   readonly hw: number;
@@ -29,7 +41,11 @@ export interface FloatTextInput {
 }
 
 export interface EmpilhaEffects {
+  /** One tile flips from a stack top onto another; resolves when it lands. */
   readonly hop: (input: HopInput) => Promise<void>;
+  /** A whole stack travels from the rival's tray to its cell, growing to board scale. */
+  readonly fly: (input: FlyInput) => Promise<void>;
+  /** A tile bursts off a clearing stack and its points fly to the bar; resolves on arrival. */
   readonly pop: (input: PopInput) => Promise<void>;
   readonly floatText: (input: FloatTextInput) => void;
   readonly ring: (at: Point, hw: number) => void;
@@ -38,6 +54,7 @@ export interface EmpilhaEffects {
 
 const translate = (x: number, y: number) => `translate3d(${x}px, ${y}px, 0)`;
 
+/** Quadratic Bézier point. */
 const bezier = (p0: number, p1: number, p2: number, t: number) => (1 - t) ** 2 * p0 + 2 * (1 - t) * t * p1 + t ** 2 * p2;
 
 const settle = (animation: Animation, element: Element): Promise<void> =>
@@ -70,39 +87,47 @@ const createEffects = (getRoot: () => HTMLElement | null): EmpilhaEffects => ({
     if (!root) return Promise.resolve();
     const hh = hw * SQUASH;
     const element = tileElement(root, color, hw);
-
-    const dx = to.x - from.x;
-    const dy = to.y - from.y;
-    const dir = dx >= 0 ? 1 : -1;
-    const dist = Math.hypot(dx, dy);
-    const rise = Math.max(hw * 1.5, dist * 0.52);
+    const rise = Math.max(hw * 1.2, Math.hypot(to.x - from.x, to.y - from.y) * 0.45);
     const control = { x: (from.x + to.x) / 2, y: Math.min(from.y, to.y) - rise };
+    // The tile turns over once in the air and swells a little at the top of the arc.
+    const frames: Keyframe[] = [0, 0.2, 0.4, 0.6, 0.8, 1].map((t) => ({
+      transform: `${translate(bezier(from.x, control.x, to.x, t) - hw, bezier(from.y, control.y, to.y, t) - hh)} perspective(${hw * 9}px) rotateX(${
+        t * 360
+      }deg) scale(${1 + 0.2 * Math.sin(Math.PI * t)})`,
+    }));
+    return settle(element.animate(frames, { duration: 330, delay, easing: 'cubic-bezier(0.35, 0, 0.45, 1)', fill: 'both' }), element);
+  },
 
-    const steps = [0, 0.2, 0.4, 0.6, 0.8, 1];
-    const frames: Keyframe[] = steps.map((t) => {
-      const bx = bezier(from.x, control.x, to.x, t) - hw;
-      const by = bezier(from.y, control.y, to.y, t) - hh;
-      const heightFactor = Math.sin(t * Math.PI);
-      const scale = 1 + heightFactor * 0.32;
-      const rotX = t * 360;
-      const rotZ = dir * t * 180;
-      const shadowY = 2 + heightFactor * 18;
-      const shadowBlur = 4 + heightFactor * 16;
+  fly({ clone, rect, to, hw }) {
+    const root = getRoot();
+    if (!root) return Promise.resolve();
+    const trayHw = rect.width / 2;
+    const trayHh = trayHw * SQUASH;
+    const wrapper = document.createElement('span');
+    wrapper.className = styles.fx ?? '';
+    wrapper.style.width = `${rect.width}px`;
+    wrapper.style.height = `${rect.height}px`;
+    wrapper.style.setProperty('--hw', `${trayHw}px`);
+    wrapper.style.setProperty('--squash', String(SQUASH));
+    wrapper.style.setProperty('--layer', String(LAYER));
+    // Scale about the bottom tile's centre, the point that touches down on the cell.
+    wrapper.style.transformOrigin = `${trayHw}px ${rect.height - trayHh}px`;
+    wrapper.append(clone);
+    root.append(wrapper);
+
+    const dx = to.x - (rect.left + trayHw);
+    const dy = to.y - (rect.bottom - trayHh);
+    const scale = hw / trayHw;
+    const lift = Math.max(hw * 1.6, Math.abs(dy) * 0.25);
+    const frames: Keyframe[] = [0, 0.25, 0.5, 0.75, 1].map((t) => {
+      const eased = t * t * (3 - 2 * t);
       return {
-        transform: `${translate(bx, by)} perspective(700px) rotateX(${rotX}deg) rotateZ(${rotZ}deg) scale(${scale})`,
-        filter: `brightness(${1 + heightFactor * 0.35}) drop-shadow(0 ${shadowY}px ${shadowBlur}px rgba(0, 0, 0, ${0.22 + heightFactor * 0.25}))`,
+        transform: `${translate(rect.left + dx * eased, rect.top + dy * eased - Math.sin(Math.PI * t) * lift)} rotate(${(1 - eased) * -8}deg) scale(${
+          1 + (scale - 1) * eased
+        })`,
       };
     });
-
-    return settle(
-      element.animate(frames, {
-        duration: 320,
-        delay,
-        easing: 'cubic-bezier(0.25, 0.8, 0.25, 1)',
-        fill: 'both',
-      }),
-      element,
-    );
+    return settle(wrapper.animate(frames, { duration: 520, easing: 'ease-in-out', fill: 'both' }), wrapper);
   },
 
   pop({ at, to, color, hw, delay }) {
@@ -114,11 +139,11 @@ const createEffects = (getRoot: () => HTMLElement | null): EmpilhaEffects => ({
     const burst = settle(
       element.animate(
         [
-          { transform: `${at0} scale(1) rotate(0deg)`, filter: 'brightness(1)', opacity: 1 },
-          { transform: `${at0} scale(1.35) rotate(45deg)`, filter: 'brightness(1.9)', opacity: 1, offset: 0.45 },
-          { transform: `${at0} scale(0.3) rotate(90deg)`, filter: 'brightness(2.4)', opacity: 0 },
+          { transform: `${at0} scale(1)`, filter: 'brightness(1)', opacity: 1 },
+          { transform: `${at0} scale(1.22)`, filter: 'brightness(1.8)', opacity: 1, offset: 0.45 },
+          { transform: `${at0} scale(0.4)`, filter: 'brightness(2.2)', opacity: 0 },
         ],
-        { duration: 320, delay, easing: 'ease-out', fill: 'both' },
+        { duration: 300, delay, easing: 'ease-out', fill: 'both' },
       ),
       element,
     );
@@ -128,19 +153,19 @@ const createEffects = (getRoot: () => HTMLElement | null): EmpilhaEffects => ({
     spark.className = `${styles.fx} ${styles.spark}`;
     spark.dataset.color = color;
     root.append(spark);
-    const size = Math.max(12, hw * 0.36);
+    const size = Math.max(10, hw * 0.34);
     spark.style.width = `${size}px`;
     spark.style.height = `${size}px`;
     const start = { x: at.x - size / 2, y: at.y - size / 2 };
     const end = { x: to.x - size / 2, y: to.y - size / 2 };
     const control = { x: start.x + (Math.random() - 0.5) * hw * 3, y: Math.min(start.y, end.y) - hw * 1.5 };
     const frames: Keyframe[] = [0, 0.2, 0.45, 0.7, 1].map((t) => ({
-      transform: `${translate(bezier(start.x, control.x, end.x, t), bezier(start.y, control.y, end.y, t))} scale(${1 - 0.45 * t}) rotate(${t * 360}deg)`,
+      transform: `${translate(bezier(start.x, control.x, end.x, t), bezier(start.y, control.y, end.y, t))} scale(${1 - 0.45 * t})`,
       opacity: t === 0 ? 0 : 1,
     }));
     return Promise.all([
       burst,
-      settle(spark.animate(frames, { duration: 540, delay: delay + 120, easing: 'cubic-bezier(0.5, 0, 0.75, 1)', fill: 'both' }), spark),
+      settle(spark.animate(frames, { duration: 520, delay: delay + 120, easing: 'cubic-bezier(0.5, 0, 0.75, 1)', fill: 'both' }), spark),
     ]).then(() => undefined);
   },
 
@@ -155,12 +180,12 @@ const createEffects = (getRoot: () => HTMLElement | null): EmpilhaEffects => ({
     void settle(
       label.animate(
         [
-          { transform: place(12, 0.5), opacity: 0 },
-          { transform: place(0, 1.15), opacity: 1, offset: 0.2 },
-          { transform: place(-24, 1), opacity: 1, offset: 0.75 },
-          { transform: place(-40, 0.95), opacity: 0 },
+          { transform: place(10, 0.6), opacity: 0 },
+          { transform: place(0, 1.08), opacity: 1, offset: 0.18 },
+          { transform: place(-22, 1), opacity: 1, offset: 0.75 },
+          { transform: place(-36, 0.95), opacity: 0 },
         ],
-        { duration: 1150, delay, easing: 'ease-out', fill: 'both' },
+        { duration: 1100, delay, easing: 'ease-out', fill: 'both' },
       ),
       label,
     );
@@ -179,10 +204,10 @@ const createEffects = (getRoot: () => HTMLElement | null): EmpilhaEffects => ({
     void settle(
       ring.animate(
         [
-          { transform: `${place} scale(0.3)`, opacity: 1 },
-          { transform: `${place} scale(1.75)`, opacity: 0 },
+          { transform: `${place} scale(0.4)`, opacity: 1 },
+          { transform: `${place} scale(1.6)`, opacity: 0 },
         ],
-        { duration: 700, easing: 'ease-out', fill: 'both' },
+        { duration: 650, easing: 'ease-out', fill: 'both' },
       ),
       ring,
     );
@@ -202,8 +227,9 @@ interface EffectsLayerProps {
   readonly ref: Ref<EmpilhaEffects>;
 }
 
+/** Fire-and-forget animations drawn imperatively in a fixed overlay: no React work per frame. */
 export function EffectsLayer({ ref }: EffectsLayerProps) {
-  const rootRef = useRef<HTMLDivElement | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   useImperativeHandle(ref, () => createEffects(() => rootRef.current), []);
   return createPortal(<div ref={rootRef} className={styles.layer} aria-hidden="true" />, document.body);
 }

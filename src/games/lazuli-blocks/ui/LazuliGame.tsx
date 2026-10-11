@@ -71,11 +71,11 @@ export default function LazuliGame({ services, onExit }: GameProps) {
   const reducedMotion = useReducedMotion();
   const playing = state.status === 'playing';
 
-  const gridRef = useRef<HTMLDivElement | null>(null);
-  const frameRef = useRef<HTMLDivElement | null>(null);
-  const coinRef = useRef<HTMLSpanElement | null>(null);
-  const effectsRef = useRef<EffectsHandle | null>(null);
-  const liveRef = useRef<HTMLParagraphElement | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
+  const coinRef = useRef<HTMLSpanElement>(null);
+  const effectsRef = useRef<EffectsHandle>(null);
+  const liveRef = useRef<HTMLParagraphElement>(null);
 
   const announce = useCallback((message: string) => {
     const region = liveRef.current;

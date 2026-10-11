@@ -1,3 +1,4 @@
+import type { Ref } from 'react';
 import type { DragHandlers } from '@shared/ui/drag/usePointerDrag';
 import type { TraySlot } from '../../domain';
 import { describeStack } from '../copy';
@@ -7,15 +8,17 @@ import styles from './Trays.module.css';
 interface PlayerTrayProps {
   readonly tray: readonly TraySlot[];
   readonly enabled: boolean;
+  /** Waiting for the rival: the tray is drawn ghosted. */
+  readonly waiting: boolean;
   readonly selectedSlot: number | null;
   readonly liftedSlot: number | null;
   readonly helpId: string;
   readonly bind: (slot: number) => DragHandlers;
 }
 
-export function PlayerTray({ tray, enabled, selectedSlot, liftedSlot, helpId, bind }: PlayerTrayProps) {
+export function PlayerTray({ tray, enabled, waiting, selectedSlot, liftedSlot, helpId, bind }: PlayerTrayProps) {
   return (
-    <section className={styles.tray} aria-label="Suas pilhas">
+    <section className={styles.tray} aria-label="Suas pilhas" data-waiting={waiting}>
       {tray.map((stack, slot) => (
         <div key={slot} className={styles.slot}>
           {stack ? (
@@ -42,13 +45,13 @@ export function PlayerTray({ tray, enabled, selectedSlot, liftedSlot, helpId, bi
   );
 }
 
-/** The rival's tray, ghosted at the top of the screen so you can feel it playing. */
-export function RivalTray({ tray }: { readonly tray: readonly TraySlot[] }) {
+/** The rival's tray at the top: ghosted while you play, solid while it takes its turn. */
+export function RivalTray({ tray, active, slotRef }: { readonly tray: readonly TraySlot[]; readonly active: boolean; readonly slotRef: (slot: number) => Ref<HTMLDivElement> }) {
   return (
-    <div className={styles.rival} aria-hidden="true">
+    <div className={styles.rival} data-active={active} aria-hidden="true">
       {tray.map((stack, slot) => (
-        <div key={slot} className={styles.rivalSlot}>
-          {stack && <StackView key={stack.id} tiles={stack.tiles} faded className={styles.rivalStack} />}
+        <div key={slot} ref={slotRef(slot)} className={styles.rivalSlot}>
+          {stack && <StackView key={stack.id} tiles={stack.tiles} faded={!active} className={styles.rivalStack} />}
         </div>
       ))}
     </div>

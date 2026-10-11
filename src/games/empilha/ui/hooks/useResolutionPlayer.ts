@@ -1,10 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import type { Position } from '@shared/domain/grid';
-import { stackAt, withStack, type Board, type PlayerPlacedEvent, type TileColor } from '../../domain';
+import { stackAt, withStack, type Board, type PlacedEvent, type TileColor } from '../../domain';
 import type { EmpilhaFeedback } from '../../application/ports';
 import type { EmpilhaEffects } from '../components/EffectsLayer';
 import { formatNumber } from '../copy';
-import { topFaceCenter, type BoardMetrics, type Point } from '../geometry';
+import { floorCenter, topFaceCenter, type BoardMetrics, type Point } from '../geometry';
+
+/** A rival's stack captured in its tray just before it left, so it can fly to the board. */
+export interface TrayFlight {
+  readonly clone: HTMLElement;
+  readonly rect: DOMRect;
+}
 
 export interface Playback {
   /** Board to draw instead of the real one while a move is being replayed. */
@@ -12,9 +18,11 @@ export interface Playback {
   /** Points already won but not yet shown on the bar (they arrive with the animation). */
   readonly pending: number;
   readonly busy: boolean;
+  /** Whose move is being replayed: its bar receives the points. */
+  readonly by: 'player' | 'opponent' | null;
 }
 
-const IDLE: Playback = { board: null, pending: 0, busy: false };
+const IDLE: Playback = { board: null, pending: 0, busy: false, by: null };
 
 /** Delay between tiles leaving one stack, and between tiles popping off a clear. */
 const HOP_STAGGER = 60;
@@ -37,10 +45,10 @@ const pushTile = (board: Board, position: Position, color: TileColor): Board =>
 const height = (board: Board, position: Position) => stackAt(board, position)?.length ?? 0;
 
 interface PlayerDeps {
-  readonly effectsRef: { readonly current: EmpilhaEffects | null };
+  readonly effectsRef: RefObject<EmpilhaEffects | null>;
   readonly measure: () => BoardMetrics | null;
-  /** Where cleared points fly to: the end of the player's bar. */
-  readonly barTarget: () => Point | null;
+  /** Where cleared points fly to: the end of the mover's bar. */
+  readonly barTarget: (by: 'player' | 'opponent') => Point | null;
   readonly feedback: EmpilhaFeedback;
   readonly reducedMotion: boolean;
 }
@@ -62,24 +70,33 @@ export const useResolutionPlayer = ({ effectsRef, measure, barTarget, feedback, 
   );
 
   const play = useCallback(
-    async (event: PlayerPlacedEvent): Promise<void> => {
+    async (event: PlacedEvent, flight?: TrayFlight | null): Promise<void> => {
       const run = ++runRef.current;
       const alive = () => runRef.current === run;
-      const { landed, resolution } = event.outcome;
+      const { landed, resolution, by } = event;
       const effects = effectsRef.current;
       const metrics = measure();
-      if (resolution.steps.length === 0 || reducedMotion || !effects || !metrics) {
+      const animated = !reducedMotion && effects !== null && metrics !== null;
+      if (!animated || (resolution.steps.length === 0 && !flight)) {
         setPlayback(IDLE);
         return;
       }
 
-      let board = landed;
+      let board = flight ? withStack(landed, event.at, []) : landed;
       let pending = resolution.points;
       let hops = 0;
       const show = () => {
-        if (alive()) setPlayback({ board, pending, busy: true });
+        if (alive()) setPlayback({ board, pending, busy: true, by });
       };
       show();
+      if (flight) {
+        feedback.cue('pick');
+        await effects.fly({ ...flight, to: floorCenter(metrics, event.at), hw: metrics.hw });
+        if (!alive()) return;
+        feedback.cue('drop');
+        board = landed;
+        show();
+      }
       await sleep(140);
 
       for (const step of resolution.steps) {
@@ -115,7 +132,7 @@ export const useResolutionPlayer = ({ effectsRef, measure, barTarget, feedback, 
 
         // Clear: the run bursts tile by tile, points fly to the bar.
         feedback.cue('clear', step.chain);
-        const target = barTarget();
+        const target = barTarget(by);
         const at = topFaceCenter(metrics, step.at, height(board, step.at));
         effects.floatText({ at: { x: at.x, y: at.y - metrics.hw * 0.6 }, text: `+${formatNumber(step.points)}`, tone: 'points' });
         if (step.chain > 1) {

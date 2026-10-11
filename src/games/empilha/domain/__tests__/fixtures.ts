@@ -1,7 +1,9 @@
 import { gridFromCells, toIndex, type Position } from '@shared/domain/grid';
 import { stackAt, type Board, type Cell } from '../board';
 import type { TraySlot } from '../dealer';
-import type { Side } from '../side';
+import type { Hand } from '../hand';
+import { createMatch, type MatchState } from '../match';
+import { DEFAULT_RULES } from '../rules';
 import { stackFromCodes, type Stack } from '../stack';
 import { TILE_CODES } from '../tiles';
 
@@ -37,13 +39,14 @@ export const codesAt = (board: Board, col: number, row: number): string => codes
 export const tray = (...codes: (string | null)[]): TraySlot[] =>
   codes.map((code, index) => (code === null ? null : { id: 100 + index, tiles: stackOf(code) }));
 
-export const sideOf = (board: Board, slots: TraySlot[], score = 0): Side => ({
+export const handOf = (slots: TraySlot[], score = 0): Hand => ({ tray: slots, score, moves: 0, seed: 12345, nextId: 200 });
+
+/** A match on a hand-made shared board; the player moves first. */
+export const matchOf = (board: Board, player: Hand, opponent: Hand = handOf(tray('s', 'g', 'y'))): MatchState => ({
+  ...createMatch(DEFAULT_RULES, { opponentId: 'tata', seed: 8 }),
   board,
-  tray: slots,
-  score,
-  moves: 0,
-  seed: 12345,
-  nextId: 200,
+  player,
+  opponent,
 });
 
 export const tileCount = (board: Board): number =>

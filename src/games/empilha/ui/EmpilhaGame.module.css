@@ -1,9 +1,10 @@
+/* Fills the viewport (safe areas included) like a native game screen. */
 .app {
   position: fixed;
   inset: 0;
   display: grid;
   place-items: center;
-  padding: env(safe-area-inset-top, 0px) 14px env(safe-area-inset-bottom, 0px);
+  padding: env(safe-area-inset-top, 0px) 16px env(safe-area-inset-bottom, 0px);
   overflow: hidden;
   container-type: size;
   background-color: var(--e-bg);
@@ -14,30 +15,40 @@
   user-select: none;
 }
 
+/*
+ * One column: top bar, score race, rival tray, board, hint, your tray. Every size derives from
+ * --hw-board, the largest half-tile that fits both the width (board = 10 half-tiles) and the
+ * height left after the fixed rows (rival tray + board + your tray ≈ 13.75 half-tiles).
+ * Spare height goes to the board row, so the bars hug the top and your tray stays in thumb reach.
+ */
 .stage {
-  --bar-h: 40px;
-  --race-h: 56px;
-  --hint-h: 24px;
-  --gap: clamp(3px, 0.9cqh, 8px);
+  --bar-h: 44px;
+  --race-h: 64px;
+  --hint-h: 28px;
+  --gap: clamp(4px, 1.1cqh, 12px);
   --hw-board: max(
-    16px,
+    18px,
     min(
-      100cqw / 10.4,
-      (100cqh - var(--bar-h) - var(--race-h) - 100px - var(--hint-h) - 5 * var(--gap) - 24px) / 12.8,
-      44px
+      100cqw / 10,
+      (100cqh - var(--bar-h) - var(--race-h) - var(--hint-h) - 5 * var(--gap) - 28px) / 13.95,
+      46px
     )
   );
   --hw: var(--hw-board);
   display: grid;
   grid-template-rows:
-    var(--bar-h) var(--race-h) auto 1fr var(--hint-h)
-    calc(var(--hw-board) * 2.2 + 6px);
+    var(--bar-h) var(--race-h) calc(var(--hw-board) * 1.5) 1fr var(--hint-h)
+    calc(var(--hw-board) * 2.3 + 8px);
   justify-items: center;
   gap: var(--gap);
   width: min(100%, calc(var(--hw-board) * 10 + 40px), 34rem);
   height: 100%;
   max-height: 60rem;
-  padding-block: 4px;
+  padding-block: 6px;
+}
+
+.stage[hidden] {
+  display: none;
 }
 
 .boardWrap {
@@ -55,13 +66,13 @@
 .hint {
   max-width: 100%;
   margin: 0;
-  padding: 4px 12px;
+  padding: 5px 14px;
   overflow: hidden;
   border-radius: 999px;
   background: var(--paper);
   color: var(--paper-fg);
   box-shadow: 0 4px 14px var(--e-shadow);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   line-height: 1.25;
   text-overflow: ellipsis;

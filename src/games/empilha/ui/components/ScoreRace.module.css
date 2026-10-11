@@ -14,7 +14,7 @@
 
 .you,
 .rivalLabel {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 800;
   line-height: 1.1;
 }
@@ -23,21 +23,26 @@
   color: var(--e-accent);
 }
 
-.rivalHeader {
-  justify-self: end;
-  display: flex;
+.rivalLabel {
+  display: inline-flex;
   align-items: center;
   gap: 6px;
+  justify-self: end;
+  color: var(--e-fg);
 }
 
-.rivalLabel {
-  color: var(--e-fg);
+/* Whose turn it is: the active side's name is underlined. */
+.race[data-turn='player'] .you,
+.race[data-turn='opponent'] .rivalLabel {
+  text-decoration: underline;
+  text-decoration-thickness: 3px;
+  text-underline-offset: 4px;
 }
 
 .target {
   color: var(--e-target);
   font-family: var(--font-display);
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 400;
   line-height: 0.95;
   font-variant-numeric: tabular-nums;
@@ -52,7 +57,7 @@
 
 .track {
   position: relative;
-  height: 30px;
+  height: 32px;
   overflow: hidden;
   border-radius: 999px;
   background: var(--e-track);
@@ -88,17 +93,18 @@
 .value {
   color: #ffffff;
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: 19px;
   line-height: 1;
   font-variant-numeric: tabular-nums;
   text-shadow: 0 1.5px 0 rgb(0 0 0 / 0.3);
 }
 
+/* Italic, outlined and slightly skewed, like a fighting-game badge. */
 .vs {
   padding-inline: 2px;
   color: var(--e-vs);
   font-family: var(--font-display);
-  font-size: 24px;
+  font-size: 27px;
   font-style: italic;
   line-height: 1;
   -webkit-text-stroke: 2.5px var(--e-vs-ink);

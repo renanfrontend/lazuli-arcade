@@ -1,0 +1,43 @@
+.art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(160deg, #c3f0d6, #54c486);
+}
+
+.tile {
+  position: relative;
+  display: grid;
+  width: 21%;
+  aspect-ratio: 1;
+  place-items: center;
+  padding: 2%;
+  border-radius: 14%;
+  background: #e1f6e9;
+  box-shadow: 0 3px 0 rgb(20 80 50 / 0.45);
+}
+
+.tile b {
+  position: absolute;
+  right: 6%;
+  bottom: 2%;
+  color: #143323;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 400;
+  -webkit-text-stroke: 2px #fff;
+  paint-order: stroke fill;
+}
+
+.big {
+  background: #ffd9e6;
+}
+
+.arrow {
+  color: #0d3b24;
+  font-size: 26px;
+  font-weight: 900;
+}

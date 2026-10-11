@@ -1,26 +1,29 @@
+import { isCastId, type CastId } from '@shared/cast/cast';
 import { gridFromCells } from '@shared/domain/grid';
 import { boardFromLayout, type Board, type Cell } from './board';
 import type { TraySlot, TrayStack } from './dealer';
-import type { EndReason, MatchState, MatchStatus } from './match';
+import type { Hand } from './hand';
+import type { EndReason, MatchState, MatchStatus, Turn } from './match';
 import type { Rules } from './rules';
-import type { Side } from './side';
 import { stackFromCodes, type Stack } from './stack';
 import { TILE_CODES } from './tiles';
 
-/** Compact, versioned, JSON-safe match. Cells: `x` outside, `!90` locked until 90 points, `=sgg` open with tiles. */
+/** Compact, versioned, JSON-safe match with one shared board. Cells: `x` outside, `!90` locked until 90 points, `=sgg` open with tiles. */
 export interface MatchSnapshot {
-  readonly version: 1;
+  readonly version: 2;
+  readonly opponentId: CastId;
   readonly level: number;
   readonly target: number;
   readonly status: MatchStatus;
   readonly endReason: EndReason | null;
-  readonly player: SideSnapshot;
-  readonly opponent: SideSnapshot;
+  readonly turn: Turn;
+  readonly board: readonly string[];
+  readonly player: HandSnapshot;
+  readonly opponent: HandSnapshot;
   readonly eventSeq: number;
 }
 
-export interface SideSnapshot {
-  readonly board: readonly string[];
+export interface HandSnapshot {
   readonly tray: readonly ({ readonly id: number; readonly tiles: string } | null)[];
   readonly score: number;
   readonly moves: number;
@@ -41,23 +44,25 @@ const encodeCell = (cell: Cell): string => {
   }
 };
 
-const encodeSide = (side: Side): SideSnapshot => ({
-  board: side.board.cells.map(encodeCell),
-  tray: side.tray.map((stack) => (stack ? { id: stack.id, tiles: encodeStack(stack.tiles) } : null)),
-  score: side.score,
-  moves: side.moves,
-  seed: side.seed,
-  nextId: side.nextId,
+const encodeHand = (hand: Hand): HandSnapshot => ({
+  tray: hand.tray.map((stack) => (stack ? { id: stack.id, tiles: encodeStack(stack.tiles) } : null)),
+  score: hand.score,
+  moves: hand.moves,
+  seed: hand.seed,
+  nextId: hand.nextId,
 });
 
 export const toSnapshot = (state: MatchState): MatchSnapshot => ({
-  version: 1,
+  version: 2,
+  opponentId: state.opponentId,
   level: state.level,
   target: state.target,
   status: state.status,
   endReason: state.endReason,
-  player: encodeSide(state.player),
-  opponent: encodeSide(state.opponent),
+  turn: state.turn,
+  board: state.board.cells.map(encodeCell),
+  player: encodeHand(state.player),
+  opponent: encodeHand(state.opponent),
   eventSeq: state.eventSeq,
 });
 
@@ -72,7 +77,7 @@ const count = (value: unknown): number | null =>
   typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : null;
 
 const STATUSES: readonly MatchStatus[] = ['playing', 'won', 'lost'];
-const REASONS: readonly EndReason[] = ['target', 'opponent-target', 'board-full', 'opponent-board-full'];
+const REASONS: readonly EndReason[] = ['target', 'opponent-target', 'lead', 'opponent-lead'];
 
 const decodeStack = (code: unknown): Stack | null => (typeof code === 'string' ? stackFromCodes(code) : null);
 
@@ -93,9 +98,7 @@ const decodeCell = (code: unknown, expected: Cell): Cell | null => {
   return null;
 };
 
-const decodeSide = (raw: unknown, template: Board, traySize: number): Side | null => {
-  if (!isRecord(raw)) return null;
-  const { board: rawBoard, tray: rawTray } = raw;
+const decodeBoard = (rawBoard: unknown, template: Board): Board | null => {
   if (!Array.isArray(rawBoard) || rawBoard.length !== template.cells.length) return null;
   const cells: Cell[] = [];
   for (const [index, expected] of template.cells.entries()) {
@@ -103,7 +106,12 @@ const decodeSide = (raw: unknown, template: Board, traySize: number): Side | nul
     if (!cell) return null;
     cells.push(cell);
   }
+  return gridFromCells(template.cols, template.rows, cells);
+};
 
+const decodeHand = (raw: unknown, traySize: number): Hand | null => {
+  if (!isRecord(raw)) return null;
+  const rawTray = raw.tray;
   if (!Array.isArray(rawTray) || rawTray.length !== traySize) return null;
   const tray: TraySlot[] = [];
   for (const entry of rawTray as readonly unknown[]) {
@@ -125,25 +133,27 @@ const decodeSide = (raw: unknown, template: Board, traySize: number): Side | nul
   const seed = count(raw.seed);
   const nextId = count(raw.nextId);
   if (score === null || moves === null || seed === null || seed > 0xffffffff || nextId === null) return null;
-
-  return { board: gridFromCells(template.cols, template.rows, cells), tray, score, moves, seed, nextId };
+  return { tray, score, moves, seed, nextId };
 };
 
 /** Validates untrusted storage data; returns null whenever anything is off. */
 export const fromSnapshot = (raw: unknown, rules: Rules): MatchState | null => {
-  if (!isRecord(raw) || raw.version !== 1) return null;
+  if (!isRecord(raw) || raw.version !== 2) return null;
+  const opponentId = raw.opponentId;
+  const turn = raw.turn === 'player' || raw.turn === 'opponent' ? raw.turn : null;
   const level = count(raw.level);
   const target = count(raw.target);
   const eventSeq = count(raw.eventSeq);
   const status = STATUSES.find((value) => value === raw.status);
   const endReason = raw.endReason === null ? null : (REASONS.find((value) => value === raw.endReason) ?? undefined);
-  if (level === null || level < 1 || target === null || target < 1 || eventSeq === null) return null;
+  if (!isCastId(opponentId) || turn === null || level === null || level < 1 || target === null || target < 1 || eventSeq === null) return null;
   if (!status || endReason === undefined || (status === 'playing') !== (endReason === null)) return null;
 
   const template = boardFromLayout(rules.layout);
-  const player = decodeSide(raw.player, template, rules.traySize);
-  const opponent = decodeSide(raw.opponent, template, rules.traySize);
-  if (!player || !opponent) return null;
+  const board = decodeBoard(raw.board, template);
+  const player = decodeHand(raw.player, rules.traySize);
+  const opponent = decodeHand(raw.opponent, rules.traySize);
+  if (!board || !player || !opponent) return null;
 
-  return { level, target, status, endReason, player, opponent, eventSeq, lastEvent: null };
+  return { opponentId, level, target, status, endReason, board, turn, player, opponent, eventSeq, lastEvent: null };
 };

@@ -9,6 +9,7 @@ import {
   type KeyboardEvent,
   type PointerEvent,
 } from 'react';
+import { castMember, type CastId } from '@shared/cast/cast';
 import { samePosition, type Position } from '@shared/domain/grid';
 import type { GameProps } from '@shared/ui/arcade';
 import { cx } from '@shared/ui/cx';
@@ -18,42 +19,38 @@ import { useArcadeSettings } from '@shared/ui/hooks/useArcadeSettings';
 import { useDocumentVisible } from '@shared/ui/hooks/useDocumentVisible';
 import { useReducedMotion } from '@shared/ui/hooks/useReducedMotion';
 import { createMatchStore } from '../application/matchStore';
+import { createTournamentStore, isBracketMatch } from '../application/tournamentStore';
 import type { EmpilhaServices } from '../application/ports';
 import { EMPILHA_STORE } from '../application/stats';
-import { loadTournament, saveTournament } from '../application/tournamentStore';
+import { nextOpponent } from '../application/opponents';
 import { useOpponentClock } from '../application/useOpponentClock';
 import {
   DEFAULT_RULES,
+  findRival,
   freeCells,
+  nextRival,
   isFreeCell,
   positionsWhere,
   stackAt,
   type MatchState,
-  type PlayerPlacedEvent,
-  type Character,
-  getCharacter,
-  getCharacterByLevel,
-  advanceTournament,
-  createTournament,
-  getActiveTournamentMatch,
-  ROUND_NAMES,
+  type PlacedEvent,
 } from '../domain';
 import { createEmpilhaFeedback } from '../infrastructure/empilhaFeedback';
 import { BoardView } from './components/BoardView';
+import { Bracket } from './components/Bracket';
+import { Home } from './components/Home';
 import { Countdown } from './components/Countdown';
 import { DragLayer } from './components/DragLayer';
 import { EffectsLayer, type EmpilhaEffects } from './components/EffectsLayer';
 import { HelpDialog, PauseDialog, ResultDialog } from './components/EmpilhaDialogs';
-import { OpponentLiveView } from './components/OpponentLiveView';
 import { ScoreRace } from './components/ScoreRace';
 import { TopBar } from './components/TopBar';
-import { TournamentBracket } from './components/TournamentBracket';
-import { PlayerTray } from './components/Trays';
+import { PlayerTray, RivalTray } from './components/Trays';
 import { countLabel, describeStack, pointsLabel, RESULT_COPY, tileCount } from './copy';
 import styles from './EmpilhaGame.module.css';
 import { floorCenter, HEADROOM, LAYER, measureBoard, SQUASH, stackSize } from './geometry';
 import { useCountdown } from './hooks/useCountdown';
-import { useResolutionPlayer } from './hooks/useResolutionPlayer';
+import { useResolutionPlayer, type TrayFlight } from './hooks/useResolutionPlayer';
 import { cellAtPoint, centralFreeCell, dropTarget, isArrowKey, nextCellInDirection } from './navigation';
 import theme from './styles/theme.module.css';
 
@@ -61,6 +58,7 @@ const RULES = DEFAULT_RULES;
 const HELP_ID = 'empilha-help';
 
 type Menu = 'pause' | 'help' | null;
+type View = 'home' | 'bracket' | 'match';
 
 interface Selection {
   readonly slot: number;
@@ -68,31 +66,37 @@ interface Selection {
   readonly source: 'pointer' | 'keyboard';
 }
 
+/** Composition root of the game: arcade services in, Empilha adapters out. */
 const useEmpilhaServices = ({ openStore, audio, seedSource }: GameProps['services']): EmpilhaServices =>
   useMemo(
     () => ({ store: openStore(EMPILHA_STORE), feedback: createEmpilhaFeedback(audio), seedSource }),
     [openStore, audio, seedSource],
   );
 
-const describeMove = (event: PlayerPlacedEvent): string => {
-  const { resolution, unlocked, dealt } = event.outcome;
+/** What a screen reader hears after a move settles. */
+const describeMove = (event: PlacedEvent, who: string): string => {
+  const { resolution, unlocked, handoff } = event;
   const parts: string[] = [];
   const merges = resolution.steps.filter((step) => step.type === 'merge');
   const clears = resolution.steps.filter((step) => step.type === 'clear');
-  if (merges.length === 0 && clears.length === 0) parts.push('Pilha colocada.');
+  const subject = event.by === 'player' ? '' : `${who}: `;
+  if (merges.length === 0 && clears.length === 0) parts.push(event.by === 'player' ? 'Pilha colocada.' : 'colocou uma pilha.');
   if (merges.length > 0) parts.push(`${countLabel(resolution.tilesMoved, 'peça juntou', 'peças juntaram')} a vizinhas.`);
   for (const clear of clears) {
     parts.push(`Limpou ${tileCount(clear.color, clear.count)}: mais ${pointsLabel(clear.points)}${clear.chain > 1 ? `, combo ${clear.chain}` : ''}.`);
   }
   if (unlocked.length > 0) parts.push('A casa com cadeado foi liberada.');
-  if (dealt) parts.push('Novas pilhas na bandeja.');
-  return parts.join(' ');
+  if (handoff) parts.push(event.by === 'player' ? `Vez de ${who}.` : 'Sua vez.');
+  return `${subject}${parts.join(' ')}`;
 };
 
 export default function EmpilhaGame({ services, onExit }: GameProps) {
   const { store, feedback, seedSource } = useEmpilhaServices(services);
   const [matchStore] = useState(() => createMatchStore({ rules: RULES, store, seedSource }));
   const { match, stats } = useSyncExternalStore(matchStore.subscribe, matchStore.getState, matchStore.getState);
+  const [tournaments] = useState(() => createTournamentStore(store, RULES));
+  const tournament = useSyncExternalStore(tournaments.subscribe, tournaments.getState, tournaments.getState);
+  const [view, setView] = useState<View>('home');
   const [settings, updateSettings] = useArcadeSettings(services.settings);
   const reducedMotion = useReducedMotion();
   const visible = useDocumentVisible();
@@ -100,79 +104,95 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
   const [selection, setSelection] = useState<Selection | null>(null);
   const [liveRef, announce] = useAnnouncer();
 
-  const [tournament, setTournament] = useState(() => loadTournament(store));
-  const [isTournamentMode, setIsTournamentMode] = useState(false);
-  const [showBracket, setShowBracket] = useState(false);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const playerFillRef = useRef<HTMLDivElement>(null);
+  const rivalFillRef = useRef<HTMLDivElement>(null);
+  const effectsRef = useRef<EmpilhaEffects>(null);
 
-  const boardRef = useRef<HTMLDivElement | null>(null);
-  const playerFillRef = useRef<HTMLDivElement | null>(null);
-  const rivalFillRef = useRef<HTMLDivElement | null>(null);
-  const effectsRef = useRef<EmpilhaEffects | null>(null);
-
-  const activeTournamentMatch = isTournamentMode ? getActiveTournamentMatch(tournament) : null;
-  const currentCharacter: Character = useMemo(() => {
-    if (isTournamentMode && activeTournamentMatch?.competitor2.characterId) {
-      return getCharacter(activeTournamentMatch.competitor2.characterId);
-    }
-    return getCharacterByLevel(match.level);
-  }, [isTournamentMode, activeTournamentMatch, match.level]);
-
-  const { cols, rows } = match.player.board;
+  const { cols, rows } = match.board;
+  const rival = findRival(match.opponentId);
+  const rivalName = castMember(match.opponentId).name;
+  const rivalSlotsRef = useRef<(HTMLDivElement | null)[]>([]);
   const measure = useCallback(() => (boardRef.current ? measureBoard(boardRef.current, cols, rows) : null), [cols, rows]);
-  const barTarget = useCallback(() => {
-    const rect = playerFillRef.current?.getBoundingClientRect();
+  const barTarget = useCallback((by: 'player' | 'opponent') => {
+    const rect = (by === 'player' ? playerFillRef : rivalFillRef).current?.getBoundingClientRect();
+    if (by === 'opponent') return rect ? { x: rect.left + 16, y: rect.top + rect.height / 2 } : null;
     return rect ? { x: rect.right - 16, y: rect.top + rect.height / 2 } : null;
   }, []);
 
-  const countdown = useCountdown(match.status === 'playing', (value) => {
+  const countdown = useCountdown(false, (value) => {
     feedback.cue(value === 0 ? 'go' : 'tick');
     if (value === 0) announce('Valendo! Arraste uma pilha até uma casa vazia.');
   });
   const { playback, play, reset } = useResolutionPlayer({ effectsRef, measure, barTarget, feedback, reducedMotion });
 
-  const live = match.status === 'playing' && !countdown.blocking;
-  const canAct = live && !playback.busy && menu === null && !showBracket;
-  const board = playback.board ?? match.player.board;
-  const showResult = match.status !== 'playing' && !playback.busy;
+  const live = view === 'match' && match.status === 'playing' && !countdown.blocking;
+  const canAct = live && match.turn === 'player' && !playback.busy && menu === null;
+  const board = playback.board ?? match.board;
+  const showResult = view === 'match' && match.status !== 'playing' && !playback.busy;
+  const bracketMatch = tournament !== null && isBracketMatch(tournament.save, match);
+
+  // A finished bracket match counts once; winning the final earns a trophy.
+  useEffect(() => {
+    if (match.status === 'playing' || playback.busy) return;
+    if (tournaments.settle(match)) matchStore.awardTitle();
+  }, [match, playback.busy, tournaments, matchStore]);
 
   const celebrate = (ended: MatchState) => {
     feedback.cue(ended.status === 'won' ? 'win' : 'lose');
     if (ended.endReason) announce(`${RESULT_COPY[ended.endReason].title} ${RESULT_COPY[ended.endReason].text}`);
-
-    if (isTournamentMode) {
-      const nextTournament = advanceTournament(
-        tournament,
-        ended.status === 'won',
-        ended.player.score,
-        ended.opponent.score,
-      );
-      setTournament(nextTournament);
-      saveTournament(store, nextTournament);
-      window.setTimeout(() => {
-        setShowBracket(true);
-      }, 1200);
-    }
   };
 
+  /* ---------- replaying a move ---------- */
+
+  const settleMove = (event: PlacedEvent, after: MatchState, flight: TrayFlight | null) => {
+    void play(event, flight).then(() => {
+      announce(describeMove(event, rivalName));
+      const metrics = measure();
+      if (event.unlocked.length > 0) {
+        feedback.cue('unlock');
+        for (const position of event.unlocked) {
+          if (!metrics) break;
+          const center = floorCenter(metrics, position);
+          effectsRef.current?.ring(center, metrics.hw);
+          effectsRef.current?.floatText({ at: center, text: 'Liberada!', tone: 'unlock' });
+        }
+      }
+      if (after.status !== 'playing') celebrate(after);
+    });
+  };
+
+  /* ---------- the rival ---------- */
+
+  /** Copies the rival's stacks before its move: the chosen one is gone from the tray once the move lands. */
+  const captureTray = (): readonly (TrayFlight | null)[] =>
+    rivalSlotsRef.current.map((slot) => {
+      const stack = slot?.firstElementChild;
+      if (!slot || !(stack instanceof HTMLElement)) return null;
+      const clone = stack.cloneNode(true) as HTMLElement;
+      // The tray's entrance animation would replay on the copy and make it fade in mid-flight.
+      clone.style.animation = 'none';
+      return { clone, rect: stack.getBoundingClientRect() };
+    });
+
+  // Mid-tray placements come quicker than the first thought of a turn.
+  const midTray = match.opponent.tray.some((slot) => slot === null);
   useOpponentClock({
-    active: live && menu === null && visible && !showBracket,
-    profile: currentCharacter.bot,
-    turn: match.opponent.moves,
+    active: live && match.turn === 'opponent' && !playback.busy && menu === null && visible,
+    profile: { ...rival.bot, thinkMs: midTray ? rival.bot.thinkMs * 0.55 : rival.bot.thinkMs },
+    turn: match.eventSeq,
     onTurn: () => {
+      const flights = captureTray();
       const before = matchStore.getState().match;
       const after = matchStore.dispatch({ type: 'opponentTurn' }).match;
       const event = after.lastEvent;
-      if (event?.type === 'opponentPlaced' && event.seq > before.eventSeq && event.clears > 0) {
-        feedback.cue('rivalScore');
-        const rect = rivalFillRef.current?.getBoundingClientRect();
-        if (rect) {
-          effectsRef.current?.floatText({ at: { x: rect.right - 28, y: rect.bottom + 16 }, text: `+${event.points}`, tone: 'rival' });
-        }
-        announce(`${currentCharacter.name} marcou ${pointsLabel(event.points)}.`);
-      }
-      if (before.status === 'playing' && after.status !== 'playing') celebrate(after);
+      if (event?.type !== 'placed' || event.by !== 'opponent' || event.seq <= before.eventSeq) return;
+      if (event.resolution.clears > 0) feedback.cue('rivalScore');
+      settleMove(event, after, flights[event.slot] ?? null);
     },
   });
+
+  /* ---------- placing ---------- */
 
   const place = (slot: number, at: Position): boolean => {
     if (!canAct) return false;
@@ -185,21 +205,7 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
     setSelection(null);
     feedback.cue('drop');
     const event = after.lastEvent;
-    if (event?.type !== 'playerPlaced') return true;
-    void play(event).then(() => {
-      announce(describeMove(event));
-      const metrics = measure();
-      if (event.outcome.unlocked.length > 0) {
-        feedback.cue('unlock');
-        for (const position of event.outcome.unlocked) {
-          if (!metrics) break;
-          const center = floorCenter(metrics, position);
-          effectsRef.current?.ring(center, metrics.hw);
-          effectsRef.current?.floatText({ at: center, text: 'Liberada!', tone: 'unlock' });
-        }
-      }
-      if (after.status !== 'playing') celebrate(after);
-    });
+    if (event?.type === 'placed') settleMove(event, after, null);
     return true;
   };
 
@@ -214,7 +220,8 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
     snap: (_slot, rect) => {
       const metrics = measure();
       if (!metrics) return null;
-      return dropTarget(metrics, match.player.board, { x: rect.left + rect.width / 2, y: rect.top + rect.height - metrics.hh });
+      // The bottom tile's centre is where the stack touches down.
+      return dropTarget(metrics, match.board, { x: rect.left + rect.width / 2, y: rect.top + rect.height - metrics.hh });
     },
     sameTarget: samePosition,
     sameItem: (a, b) => a === b,
@@ -233,16 +240,19 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
     },
   });
 
+  /* ---------- tap and keyboard placement ---------- */
+
   const toggleSelection = (slot: number, source: 'pointer' | 'keyboard') => {
     if (!canAct || !match.player.tray[slot]) return;
     if (selection?.slot === slot) {
       setSelection(null);
       return;
     }
-    const cursor = centralFreeCell(match.player.board);
+    const cursor = centralFreeCell(match.board);
     if (!cursor) return;
     feedback.cue('select');
     setSelection({ slot, cursor, source });
+    // Keyboard users steer a cursor on the focused board; pointer users just tap a highlighted cell.
     if (source === 'keyboard') boardRef.current?.focus({ preventScroll: true });
     announce(
       source === 'keyboard'
@@ -255,9 +265,9 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
     if (!selection || !canAct) return;
     const metrics = measure();
     if (!metrics) return;
-    const cell = cellAtPoint(metrics, match.player.board, { x: event.clientX, y: event.clientY });
+    const cell = cellAtPoint(metrics, match.board, { x: event.clientX, y: event.clientY });
     if (!cell) return;
-    if (isFreeCell(match.player.board, cell)) {
+    if (isFreeCell(match.board, cell)) {
       place(selection.slot, cell);
       return;
     }
@@ -288,35 +298,27 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
     }
   };
 
-  const startMatch = (level: number) => {
+  /* ---------- match flow ---------- */
+
+  const startMatch = (opponentId: CastId, inTournament = false) => {
     reset();
     setSelection(null);
     setMenu(null);
-    matchStore.dispatch({ type: 'newMatch', level, seed: seedSource() });
+    const { match: fresh } = matchStore.dispatch({ type: 'newMatch', opponentId, seed: seedSource() });
+    tournaments.beginMatch(inTournament ? fresh.eventSeq : null);
+    setView('match');
     countdown.start();
   };
 
-  const startTournamentMatch = () => {
-    setShowBracket(false);
-    setIsTournamentMode(true);
-    const tourLevel = tournament.currentRound * 2 + 1;
-    startMatch(tourLevel);
-  };
-
-  const resetTournament = () => {
-    const fresh = createTournament(tournament.trophiesCount);
-    setTournament(fresh);
-    saveTournament(store, fresh);
-  };
-
-  const dialogOpen = menu !== null || showResult || showBracket;
+  const dialogOpen = menu !== null || showResult;
   const onWindowKeyDown = useEffectEvent((event: globalThis.KeyboardEvent) => {
-    if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || dialogOpen) return;
+    if (view !== 'match' || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || dialogOpen) return;
     const slot = Number.parseInt(event.key, 10) - 1;
     if (slot >= 0 && slot < match.player.tray.length) {
       event.preventDefault();
       toggleSelection(slot, 'keyboard');
     } else if (event.key === 'Escape') {
+      // Without this, the same keypress would reach the pause dialog it opens and close it again.
       event.preventDefault();
       if (selection) {
         setSelection(null);
@@ -337,17 +339,24 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
     };
   }, []);
 
-  const free = freeCells(match.player.board).length;
-  const locked = positionsWhere(match.player.board, (cell) => cell.kind === 'locked');
+  /* ---------- render ---------- */
+
+  const free = freeCells(match.board).length;
+  const locked = positionsWhere(match.board, (cell) => cell.kind === 'locked');
   const unlockAt = locked.length > 0 ? RULES.layout.unlockAt[0] ?? null : null;
   const firstMove = stats.wins + stats.losses === 0 && match.player.moves === 0;
   const hint = selection
     ? selection.source === 'keyboard'
       ? 'Setas movem · Enter coloca · Esc cancela'
       : 'Toque numa casa vazia para colocar'
-    : firstMove && live
-      ? 'Arraste uma pilha até uma casa vazia'
-      : null;
+    : live && match.turn === 'opponent'
+      ? `Vez de ${rivalName}…`
+      : firstMove && live
+        ? 'Arraste uma pilha até uma casa vazia'
+        : live
+          ? `Sua vez · ${countLabel(match.player.tray.filter((slot) => slot !== null).length, 'pilha', 'pilhas')}`
+          : null;
+  const upcoming = nextOpponent(stats);
   const draggedTiles = drag.view ? (match.player.tray[drag.view.item]?.tiles ?? null) : null;
 
   return (
@@ -364,37 +373,66 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
         event.preventDefault();
       }}
     >
-      <main className={styles.stage}>
+      {view === 'home' && (
+        <Home
+          stats={stats}
+          resumable={match.status === 'playing' && match.player.moves + match.opponent.moves > 0 ? match.opponentId : null}
+          tournament={tournament}
+          onResume={() => {
+            setView('match');
+            countdown.start();
+          }}
+          onPlayRival={(id) => {
+            startMatch(id);
+          }}
+          onTournament={() => {
+            if (!tournament) tournaments.start(seedSource());
+            setView('bracket');
+          }}
+          onExit={onExit}
+        />
+      )}
+      {view === 'bracket' && tournament && (
+        <Bracket
+          session={tournament}
+          onPlay={() => {
+            const rivalId = nextRival(tournament.tournament);
+            if (rivalId) startMatch(rivalId, true);
+          }}
+          onNew={() => {
+            tournaments.start(seedSource());
+          }}
+          onBack={() => {
+            setView('home');
+          }}
+        />
+      )}
+      <main className={styles.stage} hidden={view !== 'match'}>
         <h1 className="sr-only">Empilha</h1>
         <TopBar
-          level={match.level}
+          rival={rivalName}
           onExit={onExit}
           onMenu={() => {
             setMenu('pause');
           }}
-          isTournament={isTournamentMode}
-          tournamentRoundName={ROUND_NAMES[tournament.currentRound]}
-          onOpenTournament={() => {
-            setShowBracket(true);
-          }}
         />
-
         <ScoreRace
-          player={match.player.score - Math.round(playback.pending)}
-          rival={match.opponent.score}
+          player={match.player.score - (playback.by === 'player' ? Math.round(playback.pending) : 0)}
+          rival={match.opponent.score - (playback.by === 'opponent' ? Math.round(playback.pending) : 0)}
           target={match.target}
+          rivalId={match.opponentId}
+          rivalMood={match.status === 'won' ? 'sad' : match.status === 'lost' ? 'happy' : match.turn === 'opponent' ? 'think' : 'idle'}
+          turn={match.turn}
           playerFillRef={playerFillRef}
           rivalFillRef={rivalFillRef}
-          character={currentCharacter}
         />
-
-        <OpponentLiveView
-          character={currentCharacter}
-          opponent={match.opponent}
-          lastEvent={match.lastEvent}
-          isLive={live}
+        <RivalTray
+          tray={match.opponent.tray}
+          active={match.turn === 'opponent' && match.status === 'playing'}
+          slotRef={(slot) => (element) => {
+            rivalSlotsRef.current[slot] = element;
+          }}
         />
-
         <div className={styles.boardWrap}>
           <BoardView
             board={board}
@@ -409,7 +447,6 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
             onKeyDown={onBoardKeyDown}
           />
         </div>
-
         <div className={styles.hintRow}>
           {hint && (
             <p key={hint} className={styles.hint} aria-hidden="true">
@@ -417,10 +454,10 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
             </p>
           )}
         </div>
-
         <PlayerTray
           tray={match.player.tray}
           enabled={canAct}
+          waiting={match.turn !== 'player' && match.status === 'playing'}
           selectedSlot={selection?.slot ?? null}
           liftedSlot={drag.view?.item ?? null}
           helpId={HELP_ID}
@@ -436,15 +473,6 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
       <DragLayer view={drag.view} tiles={draggedTiles} hw={drag.view ? drag.view.width / 2 : 0} layerRef={drag.attachLayer} />
       <EffectsLayer ref={effectsRef} />
 
-      {showBracket && (
-        <TournamentBracket
-          tournament={tournament}
-          onPlayMatch={startTournamentMatch}
-          onResetTournament={resetTournament}
-          onClose={() => { setShowBracket(false); }}
-        />
-      )}
-
       <PauseDialog
         open={menu === 'pause'}
         sound={settings.sound}
@@ -458,11 +486,14 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
           setMenu('help');
         }}
         onRestart={() => {
-          startMatch(match.level);
+          startMatch(match.opponentId, bracketMatch);
+        }}
+        onMenu={() => {
+          setMenu(null);
+          setView('home');
         }}
         onExit={onExit}
       />
-
       <HelpDialog
         open={menu === 'help'}
         target={match.target}
@@ -472,18 +503,24 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
           setMenu('pause');
         }}
       />
-
-      {match.endReason && !isTournamentMode && (
+      {match.endReason && (
         <ResultDialog
           open={showResult && menu === null}
           won={match.status === 'won'}
           reason={match.endReason}
           playerScore={match.player.score}
           rivalScore={match.opponent.score}
-          nextLevel={stats.level}
+          rivalId={match.opponentId}
+          rivalLine={match.status === 'won' ? rival.lines.lose : rival.lines.win}
+          nextRivalId={match.status === 'won' && upcoming !== match.opponentId ? upcoming : null}
+          bracket={bracketMatch}
           stats={stats}
           onNext={() => {
-            startMatch(stats.level);
+            if (bracketMatch) setView('bracket');
+            else startMatch(match.status === 'won' ? upcoming : match.opponentId);
+          }}
+          onRematch={() => {
+            startMatch(match.opponentId);
           }}
           onExit={onExit}
         />
