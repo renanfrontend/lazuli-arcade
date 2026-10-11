@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState, useCallback, type PointerEvent } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo, type PointerEvent } from 'react';
 import type { GameProps } from '@shared/ui/arcade';
 import { BackIcon, GearIcon } from '@shared/ui/icons';
 import { PUGA_STORE, loadPugaStats, recordPugaGame } from '../application/stats';
 import { createPugaFeedback } from '../infrastructure/pugaFeedback';
+import { useDocumentVisible } from '@shared/ui/hooks/useDocumentVisible';
+import { advanceFrame } from '../application/frameClock';
 import styles from './PugaSaltaGame.module.css';
 
 interface Platform {
@@ -49,12 +51,13 @@ const drawRoundRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: n
 };
 
 export default function PugaSaltaGame({ services, onExit }: GameProps) {
-  const store = services.openStore(PUGA_STORE);
-  const feedback = createPugaFeedback(services.audio);
+  const store = useMemo(() => services.openStore(PUGA_STORE), [services]);
+  const feedback = useMemo(() => createPugaFeedback(services.audio), [services.audio]);
+  const visible = useDocumentVisible();
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [stats, setStats] = useState(() => loadPugaStats(store));
-  const [gameState, setGameState] = useState<'ready' | 'playing' | 'gameover'>('ready');
+  const [gameState, setGameState] = useState<'ready' | 'playing' | 'paused' | 'gameover'>('ready');
   const [currentScore, setCurrentScore] = useState(0);
   const [currentBones, setCurrentBones] = useState(0);
   const [isNewRecord, setIsNewRecord] = useState(false);
@@ -97,6 +100,9 @@ export default function PugaSaltaGame({ services, onExit }: GameProps) {
     maxHeightRef.current = 0;
     bonesCountRef.current = 0;
     particlesRef.current = [];
+    itemsRef.current = [];
+    inputLeftRef.current = false;
+    inputRightRef.current = false;
     setCurrentScore(0);
     setCurrentBones(0);
     setIsNewRecord(false);
@@ -140,7 +146,7 @@ export default function PugaSaltaGame({ services, onExit }: GameProps) {
   }, [feedback]);
 
   useEffect(() => {
-    if (gameState !== 'playing') return;
+    if (gameState !== 'playing' || !visible) return;
 
     let animId: number;
     const canvas = canvasRef.current;
@@ -165,7 +171,7 @@ export default function PugaSaltaGame({ services, onExit }: GameProps) {
       }
     };
 
-    const update = () => {
+    const step = (): boolean => {
       const puga = pugaRef.current;
 
       if (inputLeftRef.current) {
@@ -231,7 +237,7 @@ export default function PugaSaltaGame({ services, onExit }: GameProps) {
             setCurrentBones(bonesCountRef.current);
             feedback.cue('bone');
             spawnParticles(item.x, item.y, '#fde047', 14);
-          } else if (item.type === 'shield') {
+          } else {
             puga.hasShield = true;
             feedback.cue('powerup');
             spawnParticles(item.x, item.y, '#38bdf8', 15);
@@ -309,7 +315,7 @@ export default function PugaSaltaGame({ services, onExit }: GameProps) {
           setStats(updated);
           setIsNewRecord(finalHeight > stats.bestHeight);
           setGameState('gameover');
-          return;
+          return false;
         }
       }
 
@@ -320,6 +326,20 @@ export default function PugaSaltaGame({ services, onExit }: GameProps) {
       }
       particlesRef.current = particlesRef.current.filter((p) => p.life < p.maxLife);
 
+      return true;
+    };
+
+    let previousTime: number | null = null;
+    let remainder = 0;
+    const update = (timestamp: number) => {
+      const puga = pugaRef.current;
+      const elapsed = previousTime === null ? 1000 / 60 : timestamp - previousTime;
+      previousTime = timestamp;
+      const frame = advanceFrame(remainder, elapsed);
+      remainder = frame.remainder;
+      for (let i = 0; i < frame.steps; i++) {
+        if (!step()) return;
+      }
       ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
       const skyGrad = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
@@ -401,7 +421,7 @@ export default function PugaSaltaGame({ services, onExit }: GameProps) {
           ctx.beginPath();
           ctx.arc(0, 0, 8, 0, Math.PI * 2);
           ctx.fill();
-        } else if (item.type === 'shield') {
+        } else {
           ctx.fillStyle = '#22c55e';
           ctx.beginPath();
           ctx.arc(0, 0, 9, 0, Math.PI * 2);
@@ -475,13 +495,22 @@ export default function PugaSaltaGame({ services, onExit }: GameProps) {
 
     animId = requestAnimationFrame(update);
     return () => { cancelAnimationFrame(animId); };
-  }, [gameState, feedback, stats.bestHeight, store]);
+  }, [gameState, visible, feedback, stats.bestHeight, store]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        inputLeftRef.current = false;
+        inputRightRef.current = false;
+        setGameState((state) => state === 'playing' ? 'paused' : state === 'paused' ? 'playing' : state);
+        return;
+      }
       if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+        e.preventDefault();
         inputLeftRef.current = true;
       } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+        e.preventDefault();
         inputRightRef.current = true;
       }
     };
@@ -494,9 +523,17 @@ export default function PugaSaltaGame({ services, onExit }: GameProps) {
       }
     };
 
+    const clearInput = () => {
+      inputLeftRef.current = false;
+      inputRightRef.current = false;
+    };
+    window.addEventListener('blur', clearInput);
+    document.addEventListener('visibilitychange', clearInput);
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
     return () => {
+      window.removeEventListener('blur', clearInput);
+      document.removeEventListener('visibilitychange', clearInput);
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
     };
@@ -504,7 +541,8 @@ export default function PugaSaltaGame({ services, onExit }: GameProps) {
 
   const handlePointerDown = (e: PointerEvent<HTMLDivElement>) => {
     services.audio.unlock();
-    if (gameState !== 'playing') return;
+    if (gameState !== 'playing' || e.target !== canvasRef.current) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
 
     const rect = e.currentTarget.getBoundingClientRect();
     const touchX = e.clientX - rect.left;
@@ -540,7 +578,10 @@ export default function PugaSaltaGame({ services, onExit }: GameProps) {
           type="button"
           className={styles.iconBtn}
           onClick={() => {
-            if (gameState === 'playing') setGameState('ready');
+            if (gameState === 'playing') {
+              handlePointerUp();
+              setGameState('paused');
+            }
           }}
           aria-label="Opções"
         >
@@ -553,6 +594,7 @@ export default function PugaSaltaGame({ services, onExit }: GameProps) {
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
+        onLostPointerCapture={handlePointerUp}
       >
         <canvas
           ref={canvasRef}
@@ -578,6 +620,19 @@ export default function PugaSaltaGame({ services, onExit }: GameProps) {
               <button type="button" className={styles.actionBtn} onClick={resetGame}>
                 ▶ Começar Pulo!
               </button>
+            </div>
+          </div>
+        )}
+
+        {gameState === 'paused' && (
+          <div className={styles.overlay}>
+            <div className={styles.startCard} role="dialog" aria-modal="true" aria-label="Jogo pausado">
+              <h2 className={styles.gameTitle}>Pulo pausado</h2>
+              <button type="button" className={styles.actionBtn} onClick={() => { setGameState('playing'); }}>
+                ▶ Continuar
+              </button>
+              <button type="button" className={styles.secondaryBtn} onClick={resetGame}>Recomeçar</button>
+              <button type="button" className={styles.secondaryBtn} onClick={onExit}>Voltar ao Arcade</button>
             </div>
           </div>
         )}

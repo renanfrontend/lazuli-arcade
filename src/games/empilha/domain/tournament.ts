@@ -158,7 +158,7 @@ export const advanceTournament = (
 
   for (let i = 0; i < currentMatches.length; i++) {
     const match = currentMatches[i];
-    if (match && match.round === round && match.status === 'pending') {
+    if (match?.round === round && match.status === 'pending') {
       const sim = simulateAiMatch(match.competitor1, match.competitor2);
       currentMatches[i] = {
         ...match,

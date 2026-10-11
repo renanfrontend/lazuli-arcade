@@ -15,36 +15,44 @@ interface OpponentLiveViewProps {
 }
 
 export function OpponentLiveView({ character, opponent, lastEvent, isLive }: OpponentLiveViewProps) {
-  const [speech, setSpeech] = useState<string>(character.dialogues.onStart);
-  const [lastPlacedCell, setLastPlacedCell] = useState<Position | null>(null);
-  const [justMovedSlot, setJustMovedSlot] = useState<number | null>(null);
+  const [reaction, setReaction] = useState<{
+    event: MatchEvent | null;
+    speech: string;
+    at: Position | null;
+    move: { seq: number; slot: number } | null;
+  }>({ event: null, speech: character.dialogues.onStart, at: null, move: null });
+  const [expiredMove, setExpiredMove] = useState<number | null>(null);
   const [showFullBoard, setShowFullBoard] = useState(false);
 
+  // Keep event-derived UI together without an extra render from an effect.
+  if (lastEvent !== reaction.event) {
+    if (lastEvent?.type === 'started') {
+      setReaction({ event: lastEvent, speech: character.dialogues.onStart, at: null, move: null });
+    } else if (lastEvent?.type === 'opponentPlaced') {
+      setReaction({
+        event: lastEvent,
+        speech: lastEvent.clears > 0 ? character.dialogues.onScore : character.dialogues.onPlace,
+        at: lastEvent.at,
+        move: { seq: lastEvent.seq, slot: lastEvent.slot },
+      });
+    } else {
+      setReaction({
+        ...reaction,
+        event: lastEvent,
+        speech: lastEvent?.type === 'playerPlaced' && lastEvent.outcome.resolution.clears > 0
+          ? character.dialogues.onPlayerScore : reaction.speech,
+      });
+    }
+  }
+
+  const { speech, at: lastPlacedCell, move } = reaction;
+  const justMovedSlot = move && move.seq !== expiredMove ? move.slot : null;
+  const moveSeq = move?.seq ?? null;
   useEffect(() => {
-    if (!lastEvent) return;
-
-    if (lastEvent.type === 'opponentPlaced') {
-      setLastPlacedCell(lastEvent.at);
-      setJustMovedSlot(lastEvent.slot);
-
-      if (lastEvent.clears > 0) {
-        setSpeech(character.dialogues.onScore);
-      } else {
-        setSpeech(character.dialogues.onPlace);
-      }
-
-      const timer = window.setTimeout(() => {
-        setJustMovedSlot(null);
-      }, 700);
-      return () => {
-        window.clearTimeout(timer);
-      };
-    }
-
-    if (lastEvent.type === 'playerPlaced' && lastEvent.outcome.resolution.clears > 0) {
-      setSpeech(character.dialogues.onPlayerScore);
-    }
-  }, [lastEvent, character]);
+    if (moveSeq === null) return undefined;
+    const timer = window.setTimeout(() => { setExpiredMove(moveSeq); }, 700);
+    return () => { window.clearTimeout(timer); };
+  }, [moveSeq]);
 
   const board = opponent.board;
   const cols = board.cols;

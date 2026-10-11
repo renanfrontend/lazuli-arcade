@@ -25,7 +25,7 @@ export interface Character {
   readonly dialogues: CharacterDialogue;
 }
 
-export const CHARACTERS: readonly Character[] = [
+export const CHARACTERS: readonly [Character, ...Character[]] = [
   {
     id: 'tata',
     name: 'Tatá',
@@ -173,9 +173,9 @@ export const CHARACTERS: readonly Character[] = [
 ];
 
 export const getCharacter = (id: CharacterId): Character =>
-  CHARACTERS.find((char) => char.id === id) ?? CHARACTERS[0]!;
+  CHARACTERS.find((char) => char.id === id) ?? CHARACTERS[0];
 
 export const getCharacterByLevel = (level: number): Character => {
   const index = Math.max(0, Math.floor(level) - 1) % CHARACTERS.length;
-  return CHARACTERS[index] ?? CHARACTERS[0]!;
+  return CHARACTERS[index] ?? CHARACTERS[0];
 };
