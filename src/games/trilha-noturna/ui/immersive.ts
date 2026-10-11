@@ -66,3 +66,24 @@ export const useImmersive = (active: boolean, lockLandscape: boolean): void => {
     };
   }, [active, lockLandscape]);
 };
+
+const subscribeViewport = (notify: () => void) => {
+  const viewport = window.visualViewport;
+  window.addEventListener('resize', notify);
+  viewport?.addEventListener('resize', notify);
+  return () => {
+    window.removeEventListener('resize', notify);
+    viewport?.removeEventListener('resize', notify);
+  };
+};
+
+/**
+ * Height actually visible to the player. On phones `100dvh` can include the browser bars, which pushes
+ * the bottom controls off screen, so the stage is sized from the visual viewport instead.
+ */
+export const useVisibleHeight = (): number =>
+  useSyncExternalStore(
+    subscribeViewport,
+    () => Math.round(window.visualViewport?.height ?? window.innerHeight),
+    () => 0,
+  );
