@@ -16,10 +16,11 @@ interface PauseDialogProps {
   readonly onToggleSound: () => void;
   readonly onHelp: () => void;
   readonly onRestart: () => void;
+  readonly onMenu: () => void;
   readonly onExit: () => void;
 }
 
-export function PauseDialog({ open, sound, onResume, onToggleSound, onHelp, onRestart, onExit }: PauseDialogProps) {
+export function PauseDialog({ open, sound, onResume, onToggleSound, onHelp, onRestart, onMenu, onExit }: PauseDialogProps) {
   const resumeRef = useRef<HTMLButtonElement>(null);
   return (
     <Dialog open={open} labelledBy="empilha-pause-title" describedBy="empilha-pause-text" initialFocusRef={resumeRef} onCancel={onResume}>
@@ -45,6 +46,10 @@ export function PauseDialog({ open, sound, onResume, onToggleSound, onHelp, onRe
         <button type="button" className={dialog.secondary} onClick={onRestart}>
           <RestartIcon />
           Reiniciar partida
+        </button>
+        <button type="button" className={dialog.secondary} onClick={onMenu}>
+          <BackIcon />
+          Rivais e torneio
         </button>
         <button type="button" className={dialog.secondary} onClick={onExit}>
           <BackIcon />
@@ -100,6 +105,8 @@ interface ResultDialogProps {
   readonly rivalLine: string;
   /** Next rival to face after a win, or null to just offer a rematch. */
   readonly nextRivalId: CastId | null;
+  /** The match belongs to the tournament: the way on is the bracket. */
+  readonly bracket: boolean;
   readonly stats: Stats;
   readonly onNext: () => void;
   readonly onRematch: () => void;
@@ -115,6 +122,7 @@ export function ResultDialog({
   rivalId,
   rivalLine,
   nextRivalId,
+  bracket,
   stats,
   onNext,
   onRematch,
@@ -156,9 +164,9 @@ export function ResultDialog({
       </dl>
       <div className={dialog.actions}>
         <button ref={nextRef} type="button" className={dialog.primary} onClick={onNext}>
-          {nextRivalId ? `Próximo rival: ${castMember(nextRivalId).name}` : won ? 'Jogar de novo' : `Revanche contra ${rival.name}`}
+          {bracket ? 'Ver chaveamento' : nextRivalId ? `Próximo rival: ${castMember(nextRivalId).name}` : won ? 'Jogar de novo' : `Revanche contra ${rival.name}`}
         </button>
-        {nextRivalId && (
+        {nextRivalId && !bracket && (
           <button type="button" className={dialog.secondary} onClick={onRematch}>
             <RestartIcon />
             Revanche contra {rival.name}

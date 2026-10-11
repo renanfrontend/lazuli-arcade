@@ -19,6 +19,7 @@ import { useArcadeSettings } from '@shared/ui/hooks/useArcadeSettings';
 import { useDocumentVisible } from '@shared/ui/hooks/useDocumentVisible';
 import { useReducedMotion } from '@shared/ui/hooks/useReducedMotion';
 import { createMatchStore } from '../application/matchStore';
+import { createTournamentStore } from '../application/tournamentStore';
 import type { EmpilhaServices } from '../application/ports';
 import { EMPILHA_STORE } from '../application/stats';
 import { nextOpponent } from '../application/opponents';
@@ -27,6 +28,7 @@ import {
   DEFAULT_RULES,
   findRival,
   freeCells,
+  nextRival,
   isFreeCell,
   positionsWhere,
   stackAt,
@@ -35,6 +37,8 @@ import {
 } from '../domain';
 import { createEmpilhaFeedback } from '../infrastructure/empilhaFeedback';
 import { BoardView } from './components/BoardView';
+import { Bracket } from './components/Bracket';
+import { Home } from './components/Home';
 import { Countdown } from './components/Countdown';
 import { DragLayer } from './components/DragLayer';
 import { EffectsLayer, type EmpilhaEffects } from './components/EffectsLayer';
@@ -54,6 +58,7 @@ const RULES = DEFAULT_RULES;
 const HELP_ID = 'empilha-help';
 
 type Menu = 'pause' | 'help' | null;
+type View = 'home' | 'bracket' | 'match';
 
 interface Selection {
   readonly slot: number;
@@ -89,6 +94,9 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
   const { store, feedback, seedSource } = useEmpilhaServices(services);
   const [matchStore] = useState(() => createMatchStore({ rules: RULES, store, seedSource }));
   const { match, stats } = useSyncExternalStore(matchStore.subscribe, matchStore.getState, matchStore.getState);
+  const [tournaments] = useState(() => createTournamentStore(store, RULES));
+  const tournament = useSyncExternalStore(tournaments.subscribe, tournaments.getState, tournaments.getState);
+  const [view, setView] = useState<View>('home');
   const [settings, updateSettings] = useArcadeSettings(services.settings);
   const reducedMotion = useReducedMotion();
   const visible = useDocumentVisible();
@@ -112,16 +120,23 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
     return rect ? { x: rect.right - 16, y: rect.top + rect.height / 2 } : null;
   }, []);
 
-  const countdown = useCountdown(match.status === 'playing', (value) => {
+  const countdown = useCountdown(false, (value) => {
     feedback.cue(value === 0 ? 'go' : 'tick');
     if (value === 0) announce('Valendo! Arraste uma pilha até uma casa vazia.');
   });
   const { playback, play, reset } = useResolutionPlayer({ effectsRef, measure, barTarget, feedback, reducedMotion });
 
-  const live = match.status === 'playing' && !countdown.blocking;
+  const live = view === 'match' && match.status === 'playing' && !countdown.blocking;
   const canAct = live && match.turn === 'player' && !playback.busy && menu === null;
   const board = playback.board ?? match.board;
-  const showResult = match.status !== 'playing' && !playback.busy;
+  const showResult = view === 'match' && match.status !== 'playing' && !playback.busy;
+  const bracketMatch = tournament !== null && tournament.save.matchSeq === match.eventSeq;
+
+  // A finished bracket match counts once; winning the final earns a trophy.
+  useEffect(() => {
+    if (match.status === 'playing' || playback.busy) return;
+    if (tournaments.settle(match)) matchStore.awardTitle();
+  }, [match, playback.busy, tournaments, matchStore]);
 
   const celebrate = (ended: MatchState) => {
     feedback.cue(ended.status === 'won' ? 'win' : 'lose');
@@ -285,17 +300,19 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
 
   /* ---------- match flow ---------- */
 
-  const startMatch = (opponentId: CastId) => {
+  const startMatch = (opponentId: CastId, inTournament = false) => {
     reset();
     setSelection(null);
     setMenu(null);
-    matchStore.dispatch({ type: 'newMatch', opponentId, seed: seedSource() });
+    const { match: fresh } = matchStore.dispatch({ type: 'newMatch', opponentId, seed: seedSource() });
+    if (inTournament) tournaments.beginMatch(fresh.eventSeq);
+    setView('match');
     countdown.start();
   };
 
   const dialogOpen = menu !== null || showResult;
   const onWindowKeyDown = useEffectEvent((event: globalThis.KeyboardEvent) => {
-    if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || dialogOpen) return;
+    if (view !== 'match' || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || dialogOpen) return;
     const slot = Number.parseInt(event.key, 10) - 1;
     if (slot >= 0 && slot < match.player.tray.length) {
       event.preventDefault();
@@ -356,7 +373,41 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
         event.preventDefault();
       }}
     >
-      <main className={styles.stage}>
+      {view === 'home' && (
+        <Home
+          stats={stats}
+          resumable={match.status === 'playing' && match.player.moves + match.opponent.moves > 0 ? match.opponentId : null}
+          tournament={tournament}
+          onResume={() => {
+            setView('match');
+            countdown.start();
+          }}
+          onPlayRival={(id) => {
+            startMatch(id);
+          }}
+          onTournament={() => {
+            if (!tournament) tournaments.start(seedSource());
+            setView('bracket');
+          }}
+          onExit={onExit}
+        />
+      )}
+      {view === 'bracket' && tournament && (
+        <Bracket
+          session={tournament}
+          onPlay={() => {
+            const rivalId = nextRival(tournament.tournament);
+            if (rivalId) startMatch(rivalId, true);
+          }}
+          onNew={() => {
+            tournaments.start(seedSource());
+          }}
+          onBack={() => {
+            setView('home');
+          }}
+        />
+      )}
+      <main className={styles.stage} hidden={view !== 'match'}>
         <h1 className="sr-only">Empilha</h1>
         <TopBar
           rival={rivalName}
@@ -435,7 +486,11 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
           setMenu('help');
         }}
         onRestart={() => {
-          startMatch(match.opponentId);
+          startMatch(match.opponentId, bracketMatch);
+        }}
+        onMenu={() => {
+          setMenu(null);
+          setView('home');
         }}
         onExit={onExit}
       />
@@ -458,9 +513,11 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
           rivalId={match.opponentId}
           rivalLine={match.status === 'won' ? rival.lines.lose : rival.lines.win}
           nextRivalId={match.status === 'won' && upcoming !== match.opponentId ? upcoming : null}
+          bracket={bracketMatch}
           stats={stats}
           onNext={() => {
-            startMatch(match.status === 'won' ? upcoming : match.opponentId);
+            if (bracketMatch) setView('bracket');
+            else startMatch(match.status === 'won' ? upcoming : match.opponentId);
           }}
           onRematch={() => {
             startMatch(match.opponentId);

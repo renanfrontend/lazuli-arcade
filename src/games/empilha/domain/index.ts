@@ -9,4 +9,5 @@ export * from './rules';
 export * from './hand';
 export * from './snapshot';
 export * from './stack';
+export * from './tournament';
 export * from './tiles';

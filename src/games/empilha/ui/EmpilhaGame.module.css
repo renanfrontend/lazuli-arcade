@@ -47,6 +47,10 @@
   padding-block: 6px;
 }
 
+.stage[hidden] {
+  display: none;
+}
+
 .boardWrap {
   display: grid;
   place-items: center;

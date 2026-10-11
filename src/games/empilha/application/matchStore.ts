@@ -25,6 +25,8 @@ export interface MatchStore {
   readonly getState: () => MatchSession;
   readonly subscribe: (listener: () => void) => () => void;
   readonly dispatch: (action: MatchAction) => MatchSession;
+  /** Counts a tournament won. */
+  readonly awardTitle: () => void;
 }
 
 export interface MatchStoreDeps {
@@ -66,6 +68,11 @@ export const createMatchStore = (deps: MatchStoreDeps): MatchStore => {
       save(deps.store, session);
       for (const listener of listeners) listener();
       return session;
+    },
+    awardTitle() {
+      session = { ...session, stats: { ...session.stats, titles: session.stats.titles + 1 } };
+      save(deps.store, session);
+      for (const listener of listeners) listener();
     },
   };
 };
