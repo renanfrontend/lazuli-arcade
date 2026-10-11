@@ -1,4 +1,4 @@
-.page { min-height: 100dvh; background: radial-gradient(ellipse at 50% 20%, #1d294330 0, #080f1d 70%); color: #edf2fb; font-family: 'Segoe UI', system-ui, sans-serif; --focus: #e2c79a; }
+.page { min-height: 100dvh; background: #080f1d radial-gradient(ellipse at 50% 20%, #1d294330 0, #080f1d 70%); color: #edf2fb; color-scheme: dark; font-family: 'Segoe UI', system-ui, sans-serif; --focus: #e2c79a; }
 .lobby { display: grid; gap: 28px; max-width: 1140px; min-height: 100dvh; margin: auto; padding: 24px 24px 20px; }
 .header { display: flex; align-items: center; gap: 10px; padding-bottom: 18px; border-bottom: 1px solid #a5b9d41c; }
 .mark { width: 30px; height: 30px; flex: none; }
