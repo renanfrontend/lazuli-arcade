@@ -47,7 +47,13 @@ export default defineConfig(({ mode }) => {
                   { src: 'pwa-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
                 ],
               },
-              workbox: { globPatterns: ['**/*.{js,css,html,svg,png,woff2}'] },
+              // Explicit with script-defer: registerType alone does not enable these
+              // flags in vite-plugin-pwa v2 unless injectRegister is auto.
+              workbox: {
+                globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+                skipWaiting: true,
+                clientsClaim: true,
+              },
             }),
           ]),
     ],

@@ -104,7 +104,7 @@ Rebata a bolinha com a raquete e limpe três fases de gemas, com três vidas.
 
 ## Atualizações e carregamento
 
-O aplicativo verifica atualizações do service worker ao abrir e recarrega quando uma nova versão assume o controle. Se uma aba antiga solicitar um chunk removido por um deploy, uma recuperação tenta recarregar uma vez, com limite de 60 segundos para evitar loops. Sem conexão, o erro permanece com opção de tentar novamente; os dados locais não são apagados.
+O worker usa `skipWaiting` e `clientsClaim` explícitos, pois o registro `script-defer` não ativa esses comportamentos apenas com `registerType: autoUpdate`. O aplicativo verifica atualizações ao abrir e recarrega quando uma nova versão assume o controle. Se uma aba antiga solicitar um chunk removido por um deploy, uma recuperação tenta recarregar uma vez, com limite de 60 segundos para evitar loops. Sem conexão, o erro permanece com opção de tentar novamente; os dados locais não são apagados.
 
 ## Stack
 
