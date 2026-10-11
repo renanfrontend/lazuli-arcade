@@ -33,7 +33,8 @@ export interface TournamentStore {
   /** Starts a fresh bracket, replacing any other. */
   readonly start: (seed: Seed) => TournamentSession;
   /** Marks `seq` as the bracket match now being played. */
-  readonly beginMatch: (seq: number) => void;
+  /** Links the match that just started (by its first eventSeq) to the bracket; `null` unlinks it. */
+  readonly beginMatch: (seq: number | null) => void;
   /** Counts a finished bracket match once; returns true when it just made the player champion. */
   readonly settle: (match: MatchState) => boolean;
   readonly abandon: () => void;
@@ -44,6 +45,10 @@ const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
 
 const count = (value: unknown): number | null =>
   typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : null;
+
+/** eventSeq grows with every move, so a match belongs to the bracket from the seq it started at. */
+export const isBracketMatch = (save: TournamentSave, match: MatchState): boolean =>
+  save.matchSeq !== null && match.eventSeq >= save.matchSeq;
 
 const rebuild = (rules: Rules, save: TournamentSave): TournamentSession | null => {
   let tournament = createTournament(rules, save.seed);
@@ -90,13 +95,13 @@ export const createTournamentStore = (store: KeyValueStore, rules: Rules): Tourn
       return next;
     },
     beginMatch(seq) {
-      if (session?.status !== 'playing') return;
+      if (!session) return;
       commit({ ...session, save: { ...session.save, matchSeq: seq } });
     },
     settle(match) {
       if (session?.status !== 'playing' || match.status === 'playing') return false;
       const { save, tournament } = session;
-      if (save.matchSeq !== match.eventSeq || save.recordedSeq >= match.eventSeq) return false;
+      if (!isBracketMatch(save, match) || save.recordedSeq >= match.eventSeq) return false;
       // Only the match against the rival the bracket is waiting for counts.
       if (nextRival(tournament) !== match.opponentId) return false;
       const next = rebuild(rules, { ...save, results: [...save.results, match.status === 'won'], recordedSeq: match.eventSeq });

@@ -19,7 +19,7 @@ import { useArcadeSettings } from '@shared/ui/hooks/useArcadeSettings';
 import { useDocumentVisible } from '@shared/ui/hooks/useDocumentVisible';
 import { useReducedMotion } from '@shared/ui/hooks/useReducedMotion';
 import { createMatchStore } from '../application/matchStore';
-import { createTournamentStore } from '../application/tournamentStore';
+import { createTournamentStore, isBracketMatch } from '../application/tournamentStore';
 import type { EmpilhaServices } from '../application/ports';
 import { EMPILHA_STORE } from '../application/stats';
 import { nextOpponent } from '../application/opponents';
@@ -130,7 +130,7 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
   const canAct = live && match.turn === 'player' && !playback.busy && menu === null;
   const board = playback.board ?? match.board;
   const showResult = view === 'match' && match.status !== 'playing' && !playback.busy;
-  const bracketMatch = tournament !== null && tournament.save.matchSeq === match.eventSeq;
+  const bracketMatch = tournament !== null && isBracketMatch(tournament.save, match);
 
   // A finished bracket match counts once; winning the final earns a trophy.
   useEffect(() => {
@@ -305,7 +305,7 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
     setSelection(null);
     setMenu(null);
     const { match: fresh } = matchStore.dispatch({ type: 'newMatch', opponentId, seed: seedSource() });
-    if (inTournament) tournaments.beginMatch(fresh.eventSeq);
+    tournaments.beginMatch(inTournament ? fresh.eventSeq : null);
     setView('match');
     countdown.start();
   };

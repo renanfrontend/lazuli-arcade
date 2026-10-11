@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { KeyValueStore } from '@shared/application/ports';
 import { createMatch, DEFAULT_RULES, nextRival } from '../../domain';
-import { createTournamentStore, loadTournament } from '../tournamentStore';
+import { createTournamentStore, isBracketMatch, loadTournament } from '../tournamentStore';
 
 const memoryStore = (): KeyValueStore => {
   const data = new Map<string, string>();
@@ -50,6 +50,20 @@ describe('tournament store', () => {
     tournaments.settle(won);
     expect(tournaments.getState()?.save.results).toEqual([true]);
     expect(listener).toHaveBeenCalled();
+  });
+
+  it('keeps a match in the bracket as its eventSeq grows with moves, until it is unlinked', () => {
+    const tournaments = createTournamentStore(memoryStore(), DEFAULT_RULES);
+    const { save } = tournaments.start(5);
+    const rival = nextRival(tournaments.getState()?.tournament ?? ({} as never));
+    if (!rival) throw new Error('fixture needs a rival');
+    tournaments.beginMatch(10);
+    const later = finished(rival, 17, false);
+    expect(isBracketMatch(tournaments.getState()?.save ?? save, later)).toBe(true);
+    expect(tournaments.settle(later)).toBe(false);
+    expect(tournaments.getState()?.status).toBe('eliminated');
+    tournaments.beginMatch(null);
+    expect(isBracketMatch(tournaments.getState()?.save ?? save, later)).toBe(false);
   });
 
   it('crowns a champion after three straight wins and ends after a loss', () => {

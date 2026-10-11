@@ -20,13 +20,18 @@ Block puzzle de gemas num tabuleiro 11 × 13. Linhas e colunas completas se desf
 
 ### Empilha
 
-Duelo de pilhas contra um oponente que joga o próprio tabuleiro ao mesmo tempo que você.
+Duelo de pilhas num **tabuleiro compartilhado**: você e o rival jogam em turnos no mesmo losango 5 × 5, e as peças giram ao pular de uma pilha para outra.
 
-- Arraste uma pilha da bandeja até uma casa vazia do tabuleiro (losango 5 × 5).
-- Pilhas vizinhas com o mesmo símbolo no topo se juntam: as peças pulam, uma a uma, para a pilha que tiver mais daquele símbolo.
-- Dez iguais no topo somem e viram pontos. Limpezas em sequência na mesma jogada valem em dobro, em triplo…
-- A casa com cadeado abre quando você chega a 90 pontos.
-- Quem chegar a 370 primeiro vence; se o seu tabuleiro encher, você perde. A cada vitória o nível sobe e o oponente fica mais rápido e mais esperto.
+- Cada vez tem três pilhas na bandeja; arraste uma até uma casa vazia. Ao esvaziar a bandeja, a vez passa para o rival, que joga à vista, voando as pilhas dele até o tabuleiro.
+- Pilhas vizinhas com o mesmo símbolo no topo se juntam; dez iguais somem e viram pontos. Limpezas em sequência valem em dobro, em triplo…
+- A casa com cadeado abre quando a soma dos placares chega a 100.
+- Vence quem chegar a 250 primeiro; se o tabuleiro encher, vence quem tiver mais pontos.
+- **Rivais:** Tata (tartaruga), Porquinho, Elefantinho, Puga, Rabito (coelho), Raposa, Lobo e a Coruja, cada um com estilo e fala próprios.
+- **Torneio:** chaveamento de 8 (quartas, semifinal e final) contra rivais sorteados pela seed; o progresso e os títulos ficam salvos.
+
+### Memória, Dobra e Frascos
+
+Três jogos curtos que reaproveitam o elenco: **Memória** (pares de personagens), **Dobra** (deslize e junte, estilo 2048, cada nível vira um personagem) e **Frascos** (separe as cores; todo puzzle é gerado com solução garantida por busca).
 
 ### Controles
 
@@ -47,7 +52,7 @@ React 19 · TypeScript 6 (strict, `noUncheckedIndexedAccess`, `exactOptionalProp
 ```bash
 npm install
 npm run dev             # servidor local
-npm test                # 125 testes de domínio, aplicação e shell
+npm test                # 168 testes de domínio, aplicação e shell
 npm run lint            # ESLint com regras type-checked
 npm run typecheck       # tsc -b
 npm run build           # PWA em dist/ (BASE_PATH=/lazuli-arcade/ para subpasta)
@@ -64,12 +69,15 @@ src/
 ├── app/                  shell: lobby, registro de jogos, rotas por hash, error boundary
 ├── shared/               núcleo compartilhado entre os jogos
 │   ├── domain/             grade imutável genérica, PRNG puro com seed
-│   ├── application/        portas (KeyValueStore, AudioPort, FeedbackPort) e configurações do arcade
+│   ├── cast/               elenco de personagens (dados) e avatares SVG originais
+│   ├── application/        portas (KeyValueStore, AudioPort, FeedbackPort), createGameStore e configurações do arcade
 │   ├── infrastructure/     localStorage resiliente, sintetizador Web Audio, seed via crypto
 │   └── ui/                 Dialog nativo, drag genérico por Pointer Events, hooks, tokens de tema
 └── games/
     ├── lazuli-blocks/      domain · application · infrastructure · ui
-    └── empilha/            domain · application · infrastructure · ui
+    ├── empilha/            domain · application · infrastructure · ui
+    ├── memoria/ · dobra/ · frascos/
+    └── (cada um com domain · application · ui)
 ```
 
 Regra de dependência: `ui → application → domain`, em cada jogo e no núcleo. `infrastructure` implementa as portas de `application`, os jogos dependem só de `shared/` e nunca um do outro, e só o `main.tsx` conhece os adaptadores concretos.
@@ -89,14 +97,17 @@ Cada jogo vira um chunk separado, salva dados no próprio namespace (`<id>:v1:*`
 - **Drag fora do ciclo do React.** Um hook genérico (`usePointerDrag`) move a peça via `transform` dentro de `requestAnimationFrame`; o React só re-renderiza quando muda o alvo do encaixe. Serve aos dois jogos.
 - **Efeitos imperativos.** Gemas, moedas, peças que pulam e faíscas são nós num overlay fixo animados com Web Animations API, que se removem ao terminar.
 - **Empilha: resolução em passos.** Cada fusão e limpeza vira um passo com o tabuleiro resultante, e a UI reproduz os passos em sequência, peça por peça. Invariante testado: depois de uma jogada, nenhum par de vizinhos tem o mesmo topo.
-- **Empilha: oponente real.** O oponente joga um tabuleiro próprio com as mesmas regras, escolhendo jogadas por heurística; o nível ajusta tempo de reação e precisão. Ele pausa junto com o menu e quando a aba fica oculta. O equilíbrio (meta, casa bloqueada, receita das pilhas) foi calibrado por simulação.
+- **Empilha: rivais e torneio.** O rival escolhe jogadas por heurística com pesos por personagem; `simulateDuel` roda partidas sem UI e calibrou meta, casa bloqueada e receita das pilhas. O torneio é reconstruído por replay dos resultados salvos, então o save é só a seed e a lista de vitórias.
+- **Minijogos.** `createGameStore` (reducer persistido) e `MiniFrame` dão a Memória, Dobra e Frascos o mesmo ciclo de save, pausa, resultado e tema.
 - **Isometria só com CSS.** Grade quadrada girada 45°, peças como quadrados arredondados achatados, com a lateral desenhada por `box-shadow`; todas as medidas derivam de `--hw`, calculado com container queries.
 - **Acessibilidade.** Teclado completo nos dois jogos, `aria-live` narrando jogadas, rótulos descritivos, `<dialog>` nativo, foco visível com contraste nos dois temas e `prefers-reduced-motion` respeitado.
 - **Temas.** Paletas claras e escuras por tokens CSS e `prefers-color-scheme`; a cor da barra do navegador acompanha o jogo aberto.
 
-### Mascote
+### Mascote e elenco
 
 Capi, a capivara com uma gema azul na cabeça do Lazuli Blocks, é uma personagem original em SVG, com seis humores que reagem ao estado do tabuleiro.
+
+O elenco do Empilha e dos minijogos (Tata, Porquinho, Elefantinho, Puga, Rabito, Raposa, Lobo e Coruja) também é original, desenhado em SVG com quatro humores.
 
 ## Direitos autorais
 
