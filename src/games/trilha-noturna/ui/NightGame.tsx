@@ -8,7 +8,7 @@ import { useGameRecord } from '@shared/ui/mini/useMiniGame';
 import cover from '../../../assets/scenes/haunted-mansion.webp';
 import clown from '../../../assets/scenes/mansion-clown.webp';
 import { closePuzzle, collectedCount, createMansion, distance, FLOORPLAN, interactMansion, interaction, LOCKERS, lookMansion, nextHint, NOTES, RELICS, SAFE, stepMansion, submitMelody, submitSafe, toggleFlashlight, type HorrorEvent, type MelodyColor } from '../domain/game';
-import { useImmersive, useIsPortrait } from './immersive';
+import { useImmersive, useIsPortrait, useVisibleHeight } from './immersive';
 import { Joystick } from './Joystick';
 import { JournalSheet, MelodySheet, NoteSheet, SafeSheet, type Verdict } from './Panels';
 import type { StickVector } from './stick';
@@ -29,7 +29,7 @@ export default function NightGame({services,onExit}:GameProps){
   const notice=useRef({text:'',until:0}),stick=useRef<StickVector>({x:0,y:0});
   const [phase,setPhase]=useState<Phase>('ready'),[hud,setHud]=useState<Hud>(initialHud),[help,setHelp]=useState(false),[map,setMap]=useState(false),[sheet,setSheet]=useState<Sheet|null>(null),[reading,setReading]=useState(0);
   const [controls,setControls]=useState(()=>window.matchMedia('(pointer:coarse)').matches),[run,setRun]=useState(false),[graphicsError,setGraphicsError]=useState<string|null>(null),[software,setSoftware]=useState(false);
-  const immersive=phase!=='ready',portrait=useIsPortrait();
+  const immersive=phase!=='ready',portrait=useIsPortrait(),visibleHeight=useVisibleHeight();
   useImmersive(immersive,controls);
   const visible=useDocumentVisible(),reduced=useReducedMotion();const {finish}=useGameRecord(services,'ultimo-espetaculo:v1');
   const pause=useCallback(()=>{setPhase(v=>v==='playing'?'paused':v==='paused'?'playing':v);},[]);
@@ -104,7 +104,7 @@ export default function NightGame({services,onExit}:GameProps){
   const start=()=>{game.current=createMansion();setHud(initialHud);notice.current={text:'Leia os bilhetes. A manivela está na brinquedoteca, à esquerda.',until:performance.now()/1000+12};timers.current={hud:0,ambient:0,step:0,enemy:0,heart:0,haunt:performance.now()/1000+20};stick.current={x:0,y:0};setRun(false);setMap(false);setSheet(null);setHelp(false);setPhase('playing');};
   const objective=hud.door?'Atravesse a porta do hall':hud.pieces===3?'Toque a melodia no hall':`Resolva os enigmas · peças ${hud.pieces}/3`;
   return <div className={styles.horror}><SceneFrame services={services} onExit={onExit} title="Último Espetáculo" eyebrow="Terror em primeira pessoa" paused={phase==='paused'} onPause={pause}>
-    <div className={styles.stage} data-hidden={hud.hidden} data-reduced={reduced} data-immersive={immersive}>
+    <div className={styles.stage} data-hidden={hud.hidden} data-reduced={reduced} data-immersive={immersive} style={immersive&&visibleHeight>0?{'--stage-h':`${visibleHeight}px`}:undefined}>
       <canvas key={software?'software':'auto'} ref={canvas} className={styles.canvas} tabIndex={0} role="img" aria-label={`Mansão em primeira pessoa. ${hud.pieces} de 3 peças. ${hud.hidden?'Escondido no armário.':hud.chasing?'O palhaço está perseguindo você.':'Explore os quartos.'}`}
         onPointerDown={event=>{if(phase!=='playing'||event.button!==0)return;drag.current={id:event.pointerId,x:event.clientX,y:event.clientY};event.currentTarget.setPointerCapture(event.pointerId);}}
         onPointerMove={event=>{const p=drag.current;if(p?.id!==event.pointerId||phase!=='playing')return;game.current=lookMansion(game.current,(event.clientX-p.x)*.006,-(event.clientY-p.y)*.0035);drag.current={id:event.pointerId,x:event.clientX,y:event.clientY};}}
