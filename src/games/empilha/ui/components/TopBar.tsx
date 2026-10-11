@@ -2,12 +2,12 @@ import { BackIcon, GearIcon } from '@shared/ui/icons';
 import styles from './TopBar.module.css';
 
 interface TopBarProps {
-  readonly level: number;
+  readonly rival: string;
   readonly onExit: () => void;
   readonly onMenu: () => void;
 }
 
-export function TopBar({ level, onExit, onMenu }: TopBarProps) {
+export function TopBar({ rival, onExit, onMenu }: TopBarProps) {
   return (
     <header className={styles.bar}>
       <button type="button" className={styles.icon} aria-label="Voltar ao arcade" title="Voltar ao arcade" onClick={onExit}>
@@ -15,7 +15,7 @@ export function TopBar({ level, onExit, onMenu }: TopBarProps) {
       </button>
       <p className={styles.level}>
         <span className={styles.game}>Empilha</span>
-        <span className={styles.chip}>Nível {level}</span>
+        <span className={styles.chip}>vs {rival}</span>
       </p>
       <button type="button" className={styles.icon} aria-label="Pausar e ajustes" title="Pausar e ajustes" onClick={onMenu}>
         <GearIcon />

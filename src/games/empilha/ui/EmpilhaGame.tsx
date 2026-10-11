@@ -9,6 +9,7 @@ import {
   type KeyboardEvent,
   type PointerEvent,
 } from 'react';
+import { castMember, type CastId } from '@shared/cast/cast';
 import { samePosition, type Position } from '@shared/domain/grid';
 import type { GameProps } from '@shared/ui/arcade';
 import { cx } from '@shared/ui/cx';
@@ -20,15 +21,17 @@ import { useReducedMotion } from '@shared/ui/hooks/useReducedMotion';
 import { createMatchStore } from '../application/matchStore';
 import type { EmpilhaServices } from '../application/ports';
 import { EMPILHA_STORE } from '../application/stats';
+import { nextOpponent } from '../application/opponents';
 import { useOpponentClock } from '../application/useOpponentClock';
 import {
   DEFAULT_RULES,
+  findRival,
   freeCells,
   isFreeCell,
   positionsWhere,
   stackAt,
   type MatchState,
-  type PlayerPlacedEvent,
+  type PlacedEvent,
 } from '../domain';
 import { createEmpilhaFeedback } from '../infrastructure/empilhaFeedback';
 import { BoardView } from './components/BoardView';
@@ -43,7 +46,7 @@ import { countLabel, describeStack, pointsLabel, RESULT_COPY, tileCount } from '
 import styles from './EmpilhaGame.module.css';
 import { floorCenter, HEADROOM, LAYER, measureBoard, SQUASH, stackSize } from './geometry';
 import { useCountdown } from './hooks/useCountdown';
-import { useResolutionPlayer } from './hooks/useResolutionPlayer';
+import { useResolutionPlayer, type TrayFlight } from './hooks/useResolutionPlayer';
 import { cellAtPoint, centralFreeCell, dropTarget, isArrowKey, nextCellInDirection } from './navigation';
 import theme from './styles/theme.module.css';
 
@@ -66,19 +69,20 @@ const useEmpilhaServices = ({ openStore, audio, seedSource }: GameProps['service
   );
 
 /** What a screen reader hears after a move settles. */
-const describeMove = (event: PlayerPlacedEvent): string => {
-  const { resolution, unlocked, dealt } = event.outcome;
+const describeMove = (event: PlacedEvent, who: string): string => {
+  const { resolution, unlocked, handoff } = event;
   const parts: string[] = [];
   const merges = resolution.steps.filter((step) => step.type === 'merge');
   const clears = resolution.steps.filter((step) => step.type === 'clear');
-  if (merges.length === 0 && clears.length === 0) parts.push('Pilha colocada.');
+  const subject = event.by === 'player' ? '' : `${who}: `;
+  if (merges.length === 0 && clears.length === 0) parts.push(event.by === 'player' ? 'Pilha colocada.' : 'colocou uma pilha.');
   if (merges.length > 0) parts.push(`${countLabel(resolution.tilesMoved, 'peça juntou', 'peças juntaram')} a vizinhas.`);
   for (const clear of clears) {
     parts.push(`Limpou ${tileCount(clear.color, clear.count)}: mais ${pointsLabel(clear.points)}${clear.chain > 1 ? `, combo ${clear.chain}` : ''}.`);
   }
   if (unlocked.length > 0) parts.push('A casa com cadeado foi liberada.');
-  if (dealt) parts.push('Novas pilhas na bandeja.');
-  return parts.join(' ');
+  if (handoff) parts.push(event.by === 'player' ? `Vez de ${who}.` : 'Sua vez.');
+  return `${subject}${parts.join(' ')}`;
 };
 
 export default function EmpilhaGame({ services, onExit }: GameProps) {
@@ -97,10 +101,14 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
   const rivalFillRef = useRef<HTMLDivElement>(null);
   const effectsRef = useRef<EmpilhaEffects>(null);
 
-  const { cols, rows } = match.player.board;
+  const { cols, rows } = match.board;
+  const rival = findRival(match.opponentId);
+  const rivalName = castMember(match.opponentId).name;
+  const rivalSlotsRef = useRef<(HTMLDivElement | null)[]>([]);
   const measure = useCallback(() => (boardRef.current ? measureBoard(boardRef.current, cols, rows) : null), [cols, rows]);
-  const barTarget = useCallback(() => {
-    const rect = playerFillRef.current?.getBoundingClientRect();
+  const barTarget = useCallback((by: 'player' | 'opponent') => {
+    const rect = (by === 'player' ? playerFillRef : rivalFillRef).current?.getBoundingClientRect();
+    if (by === 'opponent') return rect ? { x: rect.left + 16, y: rect.top + rect.height / 2 } : null;
     return rect ? { x: rect.right - 16, y: rect.top + rect.height / 2 } : null;
   }, []);
 
@@ -111,8 +119,8 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
   const { playback, play, reset } = useResolutionPlayer({ effectsRef, measure, barTarget, feedback, reducedMotion });
 
   const live = match.status === 'playing' && !countdown.blocking;
-  const canAct = live && !playback.busy && menu === null;
-  const board = playback.board ?? match.player.board;
+  const canAct = live && match.turn === 'player' && !playback.busy && menu === null;
+  const board = playback.board ?? match.board;
   const showResult = match.status !== 'playing' && !playback.busy;
 
   const celebrate = (ended: MatchState) => {
@@ -120,25 +128,52 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
     if (ended.endReason) announce(`${RESULT_COPY[ended.endReason].title} ${RESULT_COPY[ended.endReason].text}`);
   };
 
-  /* ---------- the opponent ---------- */
+  /* ---------- replaying a move ---------- */
 
+  const settleMove = (event: PlacedEvent, after: MatchState, flight: TrayFlight | null) => {
+    void play(event, flight).then(() => {
+      announce(describeMove(event, rivalName));
+      const metrics = measure();
+      if (event.unlocked.length > 0) {
+        feedback.cue('unlock');
+        for (const position of event.unlocked) {
+          if (!metrics) break;
+          const center = floorCenter(metrics, position);
+          effectsRef.current?.ring(center, metrics.hw);
+          effectsRef.current?.floatText({ at: center, text: 'Liberada!', tone: 'unlock' });
+        }
+      }
+      if (after.status !== 'playing') celebrate(after);
+    });
+  };
+
+  /* ---------- the rival ---------- */
+
+  /** Copies the rival's stacks before its move: the chosen one is gone from the tray once the move lands. */
+  const captureTray = (): readonly (TrayFlight | null)[] =>
+    rivalSlotsRef.current.map((slot) => {
+      const stack = slot?.firstElementChild;
+      if (!slot || !(stack instanceof HTMLElement)) return null;
+      const clone = stack.cloneNode(true) as HTMLElement;
+      // The tray's entrance animation would replay on the copy and make it fade in mid-flight.
+      clone.style.animation = 'none';
+      return { clone, rect: stack.getBoundingClientRect() };
+    });
+
+  // Mid-tray placements come quicker than the first thought of a turn.
+  const midTray = match.opponent.tray.some((slot) => slot === null);
   useOpponentClock({
-    active: live && menu === null && visible,
-    profile: RULES.bot(match.level),
-    turn: match.opponent.moves,
+    active: live && match.turn === 'opponent' && !playback.busy && menu === null && visible,
+    profile: { ...rival.bot, thinkMs: midTray ? rival.bot.thinkMs * 0.55 : rival.bot.thinkMs },
+    turn: match.eventSeq,
     onTurn: () => {
+      const flights = captureTray();
       const before = matchStore.getState().match;
       const after = matchStore.dispatch({ type: 'opponentTurn' }).match;
       const event = after.lastEvent;
-      if (event?.type === 'opponentPlaced' && event.seq > before.eventSeq && event.clears > 0) {
-        feedback.cue('rivalScore');
-        const rect = rivalFillRef.current?.getBoundingClientRect();
-        if (rect) {
-          effectsRef.current?.floatText({ at: { x: rect.right - 28, y: rect.bottom + 16 }, text: `+${event.points}`, tone: 'rival' });
-        }
-        announce(`Oponente marcou ${pointsLabel(event.points)}.`);
-      }
-      if (before.status === 'playing' && after.status !== 'playing') celebrate(after);
+      if (event?.type !== 'placed' || event.by !== 'opponent' || event.seq <= before.eventSeq) return;
+      if (event.resolution.clears > 0) feedback.cue('rivalScore');
+      settleMove(event, after, flights[event.slot] ?? null);
     },
   });
 
@@ -155,21 +190,7 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
     setSelection(null);
     feedback.cue('drop');
     const event = after.lastEvent;
-    if (event?.type !== 'playerPlaced') return true;
-    void play(event).then(() => {
-      announce(describeMove(event));
-      const metrics = measure();
-      if (event.outcome.unlocked.length > 0) {
-        feedback.cue('unlock');
-        for (const position of event.outcome.unlocked) {
-          if (!metrics) break;
-          const center = floorCenter(metrics, position);
-          effectsRef.current?.ring(center, metrics.hw);
-          effectsRef.current?.floatText({ at: center, text: 'Liberada!', tone: 'unlock' });
-        }
-      }
-      if (after.status !== 'playing') celebrate(after);
-    });
+    if (event?.type === 'placed') settleMove(event, after, null);
     return true;
   };
 
@@ -185,7 +206,7 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
       const metrics = measure();
       if (!metrics) return null;
       // The bottom tile's centre is where the stack touches down.
-      return dropTarget(metrics, match.player.board, { x: rect.left + rect.width / 2, y: rect.top + rect.height - metrics.hh });
+      return dropTarget(metrics, match.board, { x: rect.left + rect.width / 2, y: rect.top + rect.height - metrics.hh });
     },
     sameTarget: samePosition,
     sameItem: (a, b) => a === b,
@@ -212,7 +233,7 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
       setSelection(null);
       return;
     }
-    const cursor = centralFreeCell(match.player.board);
+    const cursor = centralFreeCell(match.board);
     if (!cursor) return;
     feedback.cue('select');
     setSelection({ slot, cursor, source });
@@ -229,9 +250,9 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
     if (!selection || !canAct) return;
     const metrics = measure();
     if (!metrics) return;
-    const cell = cellAtPoint(metrics, match.player.board, { x: event.clientX, y: event.clientY });
+    const cell = cellAtPoint(metrics, match.board, { x: event.clientX, y: event.clientY });
     if (!cell) return;
-    if (isFreeCell(match.player.board, cell)) {
+    if (isFreeCell(match.board, cell)) {
       place(selection.slot, cell);
       return;
     }
@@ -264,11 +285,11 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
 
   /* ---------- match flow ---------- */
 
-  const startMatch = (level: number) => {
+  const startMatch = (opponentId: CastId) => {
     reset();
     setSelection(null);
     setMenu(null);
-    matchStore.dispatch({ type: 'newMatch', level, seed: seedSource() });
+    matchStore.dispatch({ type: 'newMatch', opponentId, seed: seedSource() });
     countdown.start();
   };
 
@@ -303,17 +324,22 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
 
   /* ---------- render ---------- */
 
-  const free = freeCells(match.player.board).length;
-  const locked = positionsWhere(match.player.board, (cell) => cell.kind === 'locked');
+  const free = freeCells(match.board).length;
+  const locked = positionsWhere(match.board, (cell) => cell.kind === 'locked');
   const unlockAt = locked.length > 0 ? RULES.layout.unlockAt[0] ?? null : null;
   const firstMove = stats.wins + stats.losses === 0 && match.player.moves === 0;
   const hint = selection
     ? selection.source === 'keyboard'
       ? 'Setas movem · Enter coloca · Esc cancela'
       : 'Toque numa casa vazia para colocar'
-    : firstMove && live
-      ? 'Arraste uma pilha até uma casa vazia'
-      : null;
+    : live && match.turn === 'opponent'
+      ? `Vez de ${rivalName}…`
+      : firstMove && live
+        ? 'Arraste uma pilha até uma casa vazia'
+        : live
+          ? `Sua vez · ${countLabel(match.player.tray.filter((slot) => slot !== null).length, 'pilha', 'pilhas')}`
+          : null;
+  const upcoming = nextOpponent(stats);
   const draggedTiles = drag.view ? (match.player.tray[drag.view.item]?.tiles ?? null) : null;
 
   return (
@@ -333,20 +359,29 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
       <main className={styles.stage}>
         <h1 className="sr-only">Empilha</h1>
         <TopBar
-          level={match.level}
+          rival={rivalName}
           onExit={onExit}
           onMenu={() => {
             setMenu('pause');
           }}
         />
         <ScoreRace
-          player={match.player.score - Math.round(playback.pending)}
-          rival={match.opponent.score}
+          player={match.player.score - (playback.by === 'player' ? Math.round(playback.pending) : 0)}
+          rival={match.opponent.score - (playback.by === 'opponent' ? Math.round(playback.pending) : 0)}
           target={match.target}
+          rivalId={match.opponentId}
+          rivalMood={match.status === 'won' ? 'sad' : match.status === 'lost' ? 'happy' : match.turn === 'opponent' ? 'think' : 'idle'}
+          turn={match.turn}
           playerFillRef={playerFillRef}
           rivalFillRef={rivalFillRef}
         />
-        <RivalTray tray={match.opponent.tray} />
+        <RivalTray
+          tray={match.opponent.tray}
+          active={match.turn === 'opponent' && match.status === 'playing'}
+          slotRef={(slot) => (element) => {
+            rivalSlotsRef.current[slot] = element;
+          }}
+        />
         <div className={styles.boardWrap}>
           <BoardView
             board={board}
@@ -371,6 +406,7 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
         <PlayerTray
           tray={match.player.tray}
           enabled={canAct}
+          waiting={match.turn !== 'player' && match.status === 'playing'}
           selectedSlot={selection?.slot ?? null}
           liftedSlot={drag.view?.item ?? null}
           helpId={HELP_ID}
@@ -399,7 +435,7 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
           setMenu('help');
         }}
         onRestart={() => {
-          startMatch(match.level);
+          startMatch(match.opponentId);
         }}
         onExit={onExit}
       />
@@ -419,10 +455,15 @@ export default function EmpilhaGame({ services, onExit }: GameProps) {
           reason={match.endReason}
           playerScore={match.player.score}
           rivalScore={match.opponent.score}
-          nextLevel={stats.level}
+          rivalId={match.opponentId}
+          rivalLine={match.status === 'won' ? rival.lines.lose : rival.lines.win}
+          nextRivalId={match.status === 'won' && upcoming !== match.opponentId ? upcoming : null}
           stats={stats}
           onNext={() => {
-            startMatch(stats.level);
+            startMatch(match.status === 'won' ? upcoming : match.opponentId);
+          }}
+          onRematch={() => {
+            startMatch(match.opponentId);
           }}
           onExit={onExit}
         />

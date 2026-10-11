@@ -13,6 +13,17 @@ export interface HopInput {
   readonly delay: number;
 }
 
+export interface FlyInput {
+  /** Copy of the stack as drawn in the tray. */
+  readonly clone: HTMLElement;
+  /** Where the stack sat in the tray. */
+  readonly rect: DOMRect;
+  /** Centre of the floor tile it lands on. */
+  readonly to: Point;
+  /** Half-width of a board tile. */
+  readonly hw: number;
+}
+
 export interface PopInput {
   readonly at: Point;
   /** Where the tile's points fly to (the score bar), or null to just burst. */
@@ -32,6 +43,8 @@ export interface FloatTextInput {
 export interface EmpilhaEffects {
   /** One tile flips from a stack top onto another; resolves when it lands. */
   readonly hop: (input: HopInput) => Promise<void>;
+  /** A whole stack travels from the rival's tray to its cell, growing to board scale. */
+  readonly fly: (input: FlyInput) => Promise<void>;
   /** A tile bursts off a clearing stack and its points fly to the bar; resolves on arrival. */
   readonly pop: (input: PopInput) => Promise<void>;
   readonly floatText: (input: FloatTextInput) => void;
@@ -76,13 +89,45 @@ const createEffects = (getRoot: () => HTMLElement | null): EmpilhaEffects => ({
     const element = tileElement(root, color, hw);
     const rise = Math.max(hw * 1.2, Math.hypot(to.x - from.x, to.y - from.y) * 0.45);
     const control = { x: (from.x + to.x) / 2, y: Math.min(from.y, to.y) - rise };
-    const frames: Keyframe[] = [0, 0.25, 0.5, 0.75, 1].map((t) => ({
-      transform: `${translate(bezier(from.x, control.x, to.x, t) - hw, bezier(from.y, control.y, to.y, t) - hh)} scaleY(${
-        // A quick flip: the tile turns over at the top of its arc.
-        t === 0.5 ? -0.55 : t === 0.25 || t === 0.75 ? 0.35 : 1
-      })`,
+    // The tile turns over once in the air and swells a little at the top of the arc.
+    const frames: Keyframe[] = [0, 0.2, 0.4, 0.6, 0.8, 1].map((t) => ({
+      transform: `${translate(bezier(from.x, control.x, to.x, t) - hw, bezier(from.y, control.y, to.y, t) - hh)} perspective(${hw * 9}px) rotateX(${
+        t * 360
+      }deg) scale(${1 + 0.2 * Math.sin(Math.PI * t)})`,
     }));
-    return settle(element.animate(frames, { duration: 290, delay, easing: 'cubic-bezier(0.35, 0, 0.45, 1)', fill: 'both' }), element);
+    return settle(element.animate(frames, { duration: 330, delay, easing: 'cubic-bezier(0.35, 0, 0.45, 1)', fill: 'both' }), element);
+  },
+
+  fly({ clone, rect, to, hw }) {
+    const root = getRoot();
+    if (!root) return Promise.resolve();
+    const trayHw = rect.width / 2;
+    const trayHh = trayHw * SQUASH;
+    const wrapper = document.createElement('span');
+    wrapper.className = styles.fx ?? '';
+    wrapper.style.width = `${rect.width}px`;
+    wrapper.style.height = `${rect.height}px`;
+    wrapper.style.setProperty('--hw', `${trayHw}px`);
+    wrapper.style.setProperty('--squash', String(SQUASH));
+    wrapper.style.setProperty('--layer', String(LAYER));
+    // Scale about the bottom tile's centre, the point that touches down on the cell.
+    wrapper.style.transformOrigin = `${trayHw}px ${rect.height - trayHh}px`;
+    wrapper.append(clone);
+    root.append(wrapper);
+
+    const dx = to.x - (rect.left + trayHw);
+    const dy = to.y - (rect.bottom - trayHh);
+    const scale = hw / trayHw;
+    const lift = Math.max(hw * 1.6, Math.abs(dy) * 0.25);
+    const frames: Keyframe[] = [0, 0.25, 0.5, 0.75, 1].map((t) => {
+      const eased = t * t * (3 - 2 * t);
+      return {
+        transform: `${translate(rect.left + dx * eased, rect.top + dy * eased - Math.sin(Math.PI * t) * lift)} rotate(${(1 - eased) * -8}deg) scale(${
+          1 + (scale - 1) * eased
+        })`,
+      };
+    });
+    return settle(wrapper.animate(frames, { duration: 520, easing: 'ease-in-out', fill: 'both' }), wrapper);
   },
 
   pop({ at, to, color, hw, delay }) {

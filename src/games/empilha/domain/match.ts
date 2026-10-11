@@ -1,45 +1,57 @@
+import type { CastId } from '@shared/cast/cast';
 import type { Position } from '@shared/domain/grid';
 import { nextInt, toSeed, type Seed } from '@shared/domain/rng';
+import { freeCells, type Board } from './board';
 import { chooseMove } from './bot';
+import { findRival } from './characters';
+import { applyPlacement, createHand, seedBoard, type Hand, type Move, type PlacementOutcome } from './hand';
 import type { Rules } from './rules';
-import { applyPlacement, createSide, type PlacementOutcome, type Side } from './side';
+import type { Resolution } from './resolve';
+import type { Stack } from './stack';
 
 export type MatchStatus = 'playing' | 'won' | 'lost';
 
-export type EndReason = 'target' | 'opponent-target' | 'board-full' | 'opponent-board-full';
+/** `target`: someone reached the goal. `lead`: the board filled up and the higher score takes the match. */
+export type EndReason = 'target' | 'opponent-target' | 'lead' | 'opponent-lead';
+
+export type Turn = 'player' | 'opponent';
 
 export interface StartedEvent {
   readonly type: 'started';
   readonly seq: number;
 }
 
-export interface PlayerPlacedEvent {
-  readonly type: 'playerPlaced';
+/** One stack placed by either side: everything the screen needs to replay it. */
+export interface PlacedEvent {
+  readonly type: 'placed';
   readonly seq: number;
+  readonly by: Turn;
   readonly slot: number;
   readonly at: Position;
-  readonly outcome: Omit<PlacementOutcome, 'side'>;
+  /** The stack that left the tray. */
+  readonly stack: Stack;
+  /** The board the moment the stack lands, before anything merges. */
+  readonly landed: Board;
+  readonly resolution: Resolution;
+  readonly unlocked: readonly Position[];
+  /** The mover's tray was refilled: the turn passes. */
+  readonly handoff: boolean;
 }
 
-export interface OpponentPlacedEvent {
-  readonly type: 'opponentPlaced';
-  readonly seq: number;
-  readonly slot: number;
-  readonly at: Position;
-  readonly points: number;
-  readonly clears: number;
-  readonly dealt: boolean;
-}
-
-export type MatchEvent = StartedEvent | PlayerPlacedEvent | OpponentPlacedEvent;
+export type MatchEvent = StartedEvent | PlacedEvent;
 
 export interface MatchState {
+  readonly opponentId: CastId;
+  /** Difficulty tier of the rival, which also widens the tile palette. */
   readonly level: number;
   readonly target: number;
   readonly status: MatchStatus;
   readonly endReason: EndReason | null;
-  readonly player: Side;
-  readonly opponent: Side;
+  /** One board for both players. */
+  readonly board: Board;
+  readonly turn: Turn;
+  readonly player: Hand;
+  readonly opponent: Hand;
   /** Monotonic across matches, so UI side effects can key on it. */
   readonly eventSeq: number;
   readonly lastEvent: MatchEvent | null;
@@ -48,80 +60,98 @@ export interface MatchState {
 export type MatchAction =
   | { readonly type: 'place'; readonly slot: number; readonly at: Position }
   | { readonly type: 'opponentTurn' }
-  | { readonly type: 'newMatch'; readonly level: number; readonly seed: Seed };
+  | { readonly type: 'newMatch'; readonly opponentId: CastId; readonly seed: Seed };
 
 export interface NewMatchInput {
-  readonly level: number;
+  readonly opponentId: CastId;
   readonly seed: Seed;
   readonly eventSeq?: number;
+  /** Overrides the rival's tier (used when two rivals play each other). */
+  readonly level?: number;
 }
 
-export const createMatch = (rules: Rules, { level, seed, eventSeq = 0 }: NewMatchInput): MatchState => {
-  const safeLevel = Math.max(1, Math.floor(level));
-  // Each side draws from its own stream so neither can influence the other's luck.
-  const playerSeed = toSeed(seed);
+export const createMatch = (rules: Rules, { opponentId, seed, eventSeq = 0, level }: NewMatchInput): MatchState => {
+  const safeLevel = Math.max(1, Math.floor(level ?? findRival(opponentId).tier));
+  const seeded = seedBoard(toSeed(seed), rules, safeLevel);
+  // Each hand draws from its own stream so neither can influence the other's luck.
+  const playerSeed = nextInt(toSeed(seed ^ 0x51ed270b), 0xffffffff).value;
   const opponentSeed = nextInt(toSeed(seed ^ 0x9e3779b9), 0xffffffff).value;
   const seq = eventSeq + 1;
   return {
+    opponentId,
     level: safeLevel,
     target: rules.target(safeLevel),
     status: 'playing',
     endReason: null,
-    player: createSide(playerSeed, rules, safeLevel),
-    opponent: createSide(opponentSeed, rules, safeLevel),
+    board: seeded.board,
+    turn: 'player',
+    player: createHand(playerSeed, seeded.board, rules, safeLevel),
+    opponent: createHand(opponentSeed, seeded.board, rules, safeLevel),
     eventSeq: seq,
     lastEvent: { type: 'started', seq },
   };
 };
 
-const playerPlace = (rules: Rules, state: MatchState, slot: number, at: Position): MatchState => {
-  if (state.status !== 'playing') return state;
-  const outcome = applyPlacement(state.player, slot, at, rules, state.level);
+const other = (turn: Turn): Turn => (turn === 'player' ? 'opponent' : 'player');
+
+/** Applies one placement by `by` and works out whose turn it is and whether the match ended. */
+export const applyMove = (rules: Rules, state: MatchState, by: Turn, slot: number, at: Position): MatchState => {
+  if (state.status !== 'playing' || state.turn !== by) return state;
+  const mine = state[by];
+  const theirs = state[other(by)];
+  const outcome: PlacementOutcome | null = applyPlacement(state.board, mine, slot, at, theirs.score, rules, state.level);
   if (!outcome) return state;
 
-  const { side, ...details } = outcome;
-  const reachedTarget = side.score >= state.target;
+  const reachedTarget = outcome.hand.score >= state.target;
+  const nextTurn = outcome.dealt ? other(by) : by;
+  // A full board ends the match on points; a tie goes against whoever was about to move.
+  const filled = !reachedTarget && freeCells(outcome.board).length === 0;
+  const scores = { ...state, [by]: outcome.hand };
+  const leader: Turn | null = !filled
+    ? null
+    : scores.player.score === scores.opponent.score
+      ? other(nextTurn)
+      : scores.player.score > scores.opponent.score
+        ? 'player'
+        : 'opponent';
+  const winner: Turn | null = reachedTarget ? by : leader;
   const seq = state.eventSeq + 1;
+
+  const endReason: EndReason | null =
+    winner === null ? null : reachedTarget ? (by === 'player' ? 'target' : 'opponent-target') : winner === 'player' ? 'lead' : 'opponent-lead';
+
   return {
     ...state,
-    player: side,
-    status: reachedTarget ? 'won' : outcome.stuck ? 'lost' : 'playing',
-    endReason: reachedTarget ? 'target' : outcome.stuck ? 'board-full' : null,
+    board: outcome.board,
+    turn: nextTurn,
+    [by]: outcome.hand,
+    status: winner === null ? 'playing' : winner === 'player' ? 'won' : 'lost',
+    endReason,
     eventSeq: seq,
-    lastEvent: { type: 'playerPlaced', seq, slot, at, outcome: details },
+    lastEvent: {
+      type: 'placed',
+      seq,
+      by,
+      slot,
+      at,
+      stack: outcome.stack,
+      landed: outcome.landed,
+      resolution: outcome.resolution,
+      unlocked: outcome.unlocked,
+      handoff: outcome.dealt,
+    },
   };
 };
 
-const opponentTurn = (rules: Rules, state: MatchState): MatchState => {
-  if (state.status !== 'playing') return state;
-  const profile = rules.bot(state.level);
-  const choice = chooseMove(state.opponent, rules, profile.skill, state.opponent.seed);
-  const thinking: Side = { ...state.opponent, seed: choice.seed };
-  const outcome = choice.move ? applyPlacement(thinking, choice.move.slot, choice.move.at, rules, state.level) : null;
-  if (!choice.move || !outcome) {
-    // No legal move: the opponent's board is full.
-    return { ...state, opponent: thinking, status: 'won', endReason: 'opponent-board-full' };
-  }
-
-  const opponent = outcome.side;
-  const reachedTarget = opponent.score >= state.target;
-  const seq = state.eventSeq + 1;
-  return {
-    ...state,
-    opponent,
-    status: reachedTarget ? 'lost' : outcome.stuck ? 'won' : 'playing',
-    endReason: reachedTarget ? 'opponent-target' : outcome.stuck ? 'opponent-board-full' : null,
-    eventSeq: seq,
-    lastEvent: {
-      type: 'opponentPlaced',
-      seq,
-      slot: choice.move.slot,
-      at: choice.move.at,
-      points: outcome.resolution.points,
-      clears: outcome.resolution.clears,
-      dealt: outcome.dealt,
-    },
-  };
+/** The rival picks and plays one stack. */
+export const opponentTurn = (rules: Rules, state: MatchState): MatchState => {
+  if (state.status !== 'playing' || state.turn !== 'opponent') return state;
+  const profile = findRival(state.opponentId).bot;
+  const choice = chooseMove(state.board, state.opponent, rules, profile, state.opponent.seed);
+  const thinking: MatchState = { ...state, opponent: { ...state.opponent, seed: choice.seed } };
+  // Unreachable while a free cell exists; kept so a corrupt save can never stall the match.
+  if (!choice.move) return { ...thinking, status: 'won', endReason: 'lead' };
+  return applyMove(rules, thinking, 'opponent', choice.move.slot, choice.move.at);
 };
 
 export const createMatchReducer =
@@ -129,10 +159,12 @@ export const createMatchReducer =
   (state: MatchState, action: MatchAction): MatchState => {
     switch (action.type) {
       case 'place':
-        return playerPlace(rules, state, action.slot, action.at);
+        return applyMove(rules, state, 'player', action.slot, action.at);
       case 'opponentTurn':
         return opponentTurn(rules, state);
       case 'newMatch':
-        return createMatch(rules, { level: action.level, seed: action.seed, eventSeq: state.eventSeq });
+        return createMatch(rules, { opponentId: action.opponentId, seed: action.seed, eventSeq: state.eventSeq });
     }
   };
+
+export type { Move };

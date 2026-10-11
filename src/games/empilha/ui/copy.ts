@@ -31,10 +31,10 @@ export const describeStack = (stack: Stack): string => {
 };
 
 export const RESULT_COPY: Readonly<Record<EndReason, { readonly title: string; readonly text: string }>> = {
-  target: { title: 'Vitória!', text: 'Você chegou à meta antes do oponente.' },
-  'opponent-board-full': { title: 'Vitória!', text: 'O tabuleiro do oponente encheu antes da meta.' },
-  'opponent-target': { title: 'Derrota', text: 'O oponente chegou à meta primeiro.' },
-  'board-full': { title: 'Sem espaço', text: 'Seu tabuleiro encheu antes da meta.' },
+  target: { title: 'Vitória!', text: 'Você chegou à meta antes do rival.' },
+  lead: { title: 'Vitória!', text: 'O tabuleiro encheu e você estava na frente.' },
+  'opponent-target': { title: 'Derrota', text: 'O rival chegou à meta primeiro.' },
+  'opponent-lead': { title: 'Derrota', text: 'O tabuleiro encheu com o rival na frente.' },
 };
 
 export const pointsLabel = (points: number): string => countLabel(points, 'ponto', 'pontos');

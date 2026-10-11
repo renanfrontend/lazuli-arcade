@@ -54,6 +54,12 @@
   cursor: default;
 }
 
+.tray[data-waiting='true'] {
+  opacity: 0.45;
+  filter: saturate(0.6);
+  transition: opacity 0.3s;
+}
+
 .emptySlot {
   width: calc(var(--hw) * 0.9);
   aspect-ratio: 2 / 1;
@@ -63,11 +69,11 @@
 }
 
 .rival {
-  --hw: calc(var(--hw-board) * 0.46);
+  --hw: calc(var(--hw-board) * 0.6);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: end;
-  width: min(100%, calc(var(--hw-board) * 7));
+  width: min(100%, calc(var(--hw-board) * 8));
   height: 100%;
 }
 

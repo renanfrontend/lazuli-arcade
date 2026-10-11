@@ -7,6 +7,7 @@ import {
   type MatchState,
   type Rules,
 } from '../domain';
+import { nextOpponent } from './opponents';
 import type { KeyValueStore, SeedSource } from './ports';
 import { KEYS, loadStats, recordResult, type Stats } from './stats';
 
@@ -35,7 +36,7 @@ export interface MatchStoreDeps {
 export const loadSession = ({ rules, store, seedSource }: MatchStoreDeps): MatchSession => {
   const stats = loadStats(store);
   const saved = fromSnapshot(store.read(KEYS.match), rules);
-  const match = saved ?? createMatch(rules, { level: stats.level, seed: seedSource(), eventSeq: stats.recordedSeq });
+  const match = saved ?? createMatch(rules, { opponentId: nextOpponent(stats), seed: seedSource(), eventSeq: stats.recordedSeq });
   return { match, stats: recordResult(stats, match) };
 };
 

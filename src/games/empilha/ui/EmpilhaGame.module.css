@@ -30,14 +30,14 @@
     18px,
     min(
       100cqw / 10,
-      (100cqh - var(--bar-h) - var(--race-h) - var(--hint-h) - 5 * var(--gap) - 28px) / 13.75,
+      (100cqh - var(--bar-h) - var(--race-h) - var(--hint-h) - 5 * var(--gap) - 28px) / 13.95,
       46px
     )
   );
   --hw: var(--hw-board);
   display: grid;
   grid-template-rows:
-    var(--bar-h) var(--race-h) calc(var(--hw-board) * 1.3) 1fr var(--hint-h)
+    var(--bar-h) var(--race-h) calc(var(--hw-board) * 1.5) 1fr var(--hint-h)
     calc(var(--hw-board) * 2.3 + 8px);
   justify-items: center;
   gap: var(--gap);

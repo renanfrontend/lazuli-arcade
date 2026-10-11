@@ -24,8 +24,19 @@
 }
 
 .rivalLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   justify-self: end;
   color: var(--e-fg);
+}
+
+/* Whose turn it is: the active side's name is underlined. */
+.race[data-turn='player'] .you,
+.race[data-turn='opponent'] .rivalLabel {
+  text-decoration: underline;
+  text-decoration-thickness: 3px;
+  text-underline-offset: 4px;
 }
 
 .target {
