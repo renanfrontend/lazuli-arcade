@@ -45,3 +45,24 @@
 .notes strong{font-size:12px;color:#e8d4ae}
 .notes p{margin:4px 0 0;font-size:13px;line-height:1.5;color:#cbbda9}
 .sheet>button:last-child{position:sticky;bottom:0;background:#0d1522}
+
+/* Immersive: once a run starts the stage fills the screen; phones are held in landscape. */
+.stage[data-immersive=true]{position:fixed;inset:0;z-index:60;width:100vw;height:100dvh;border:0;border-radius:0}
+.stage[data-immersive=true] .canvas{width:100%;height:100%;min-height:0;max-height:none}
+.rotate{position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:30px;text-align:center;background:#050507f5;color:#eddfcf}
+.rotate span{font-size:64px;line-height:1;color:#d3b68a;animation:turn 2.4s ease-in-out infinite}
+.rotate strong{font:400 26px Georgia,serif}
+.rotate p{max-width:28ch;margin:0;color:#a99b8c;font-size:13px;line-height:1.5}
+@keyframes turn{0%,20%{transform:rotate(0)}70%,100%{transform:rotate(-90deg)}}
+@media(orientation:landscape) and (max-height:520px){
+  .stage[data-immersive=true] .hud{inset:max(10px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) auto max(16px,env(safe-area-inset-left))}
+  .stage[data-immersive=true] .status{top:96px;left:max(16px,env(safe-area-inset-left));max-width:340px}
+  .stage[data-immersive=true] .relics{margin-top:6px}
+  .stage[data-immersive=true] .touch{inset:auto max(18px,env(safe-area-inset-right)) max(14px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left))}
+  .stage[data-immersive=true] .stick{width:120px;height:120px}
+  .stage[data-immersive=true]:has(.cluster) .interact{bottom:20px}
+  .stage[data-immersive=true] .map{top:60px}
+}
+@media(prefers-reduced-motion:reduce){.rotate span{animation:none}}
+
+.pauseBtn{position:absolute;z-index:7;top:max(46px,calc(env(safe-area-inset-top) + 36px));right:max(16px,env(safe-area-inset-right));min-width:44px;min-height:44px;border:1px solid #bb9f7b55;border-radius:8px;background:#0f0d0dd9;color:#cdbfae;font-size:14px;cursor:pointer}
