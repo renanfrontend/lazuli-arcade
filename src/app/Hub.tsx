@@ -12,77 +12,27 @@ interface HubProps {
 }
 
 export function Hub({ games, services }: HubProps) {
-  const highlights = useMemo(
-    () => new Map(games.map((game) => [game.id, game.highlights?.(services) ?? []] as const)),
-    [games, services],
-  );
-  const year = new Date().getFullYear();
-
-  return (
-    <div className={styles.page}>
-      <div className={styles.lobby}>
-        <header className={styles.header}>
-          <BrandMark />
-          <div className={styles.heading}>
-            <h1 className={styles.title}>
-              Lazuli <span className={styles.accent}>Arcade</span>
-            </h1>
-            <p className={styles.lede}>Estratégia, lógica e ação. Escolha seu desafio no celular ou no computador.</p>
-          </div>
-        </header>
-
-        <main className={styles.main}>
-          <h2 className={styles.sectionTitle}>
-            Jogos <span className={styles.count}>{games.length}</span>
-          </h2>
-          <ul className={styles.grid}>
-            {games.map((game) => {
-              const facts = highlights.get(game.id) ?? [];
-              return (
-                <li key={game.id} className={styles.item}>
-                  <a className={styles.card} href={`#${game.id}`} onClick={markEnteredFromLobby}>
-                    <div className={styles.art}>
-                      <game.Thumbnail />
-                    </div>
-                    <div className={styles.body}>
-                      <h3 className={styles.cardTitle}>{game.title}</h3>
-                      <p className={styles.tagline}>{game.tagline}</p>
-                      {facts.length > 0 && (
-                        <ul className={styles.chips} aria-label="Seu progresso">
-                          {facts.map((fact) => (
-                            <li key={fact} className={styles.chip}>
-                              {fact}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                      <span className={styles.cta}>
-                        <PlayIcon />
-                        Jogar
-                      </span>
-                    </div>
-                  </a>
-                </li>
-              );
-            })}
-          </ul>
-        </main>
-
-        <footer className={styles.footer}>
-          <p>
-            © {year} {OWNER.name}. Todos os direitos reservados.
-          </p>
-          <p>
-            Conheça mais em{' '}
-            <a className={styles.link} href={OWNER.site} target="_blank" rel="noopener">
-              {OWNER.siteLabel}
-              <ExternalIcon className={styles.linkIcon} />
-            </a>
-          </p>
-        </footer>
-      </div>
+  const highlights = useMemo(() => new Map(games.map((game) => [game.id, game.highlights?.(services) ?? []] as const)), [games, services]);
+  const featured = games.filter((game) => game.featured);
+  const classics = games.filter((game) => !game.featured);
+  return <div className={styles.page}><div className={styles.lobby}>
+    <header className={styles.header}><BrandMark /><h1 className={styles.title}>Lazuli <span>Arcade</span></h1><span className={styles.headerNote}>Jogue no seu ritmo</span></header>
+    <main className={styles.main}>
+      <div className={styles.hero}><p className={styles.eyebrow}>PEQUENOS MUNDOS. OUTRAS SENSAÇÕES.</p><h2>Uma pausa.<br /><em>Ou um arrepio.</em></h2><p className={styles.lede}>Entre na noite. Desenhe na água.<br />Escolha como quer se sentir agora.</p></div>
+      <h2 className={styles.sectionTitle}>Escolha sua atmosfera</h2>
+      <ul className={styles.featuredGrid}>{featured.map((game) => <GameCard key={game.id} game={game} facts={highlights.get(game.id) ?? []} featured />)}</ul>
+      <details className={styles.classics}><summary>Mais jogos <span>{classics.length} clássicos e desafios</span></summary><ul className={styles.grid}>{classics.map((game) => <GameCard key={game.id} game={game} facts={highlights.get(game.id) ?? []} />)}</ul></details>
+    </main>
+    <footer className={styles.footer}><p>© {new Date().getFullYear()} {OWNER.name}</p><a className={styles.link} href={OWNER.site} target="_blank" rel="noopener">{OWNER.siteLabel}<ExternalIcon className={styles.linkIcon} /></a></footer>
+  </div></div>;
+}
+function GameCard({game,facts,featured=false}:{readonly game:GameDefinition;readonly facts:readonly string[];readonly featured?:boolean}) {
+  return <li className={styles.item}><a className={styles.card} data-featured={featured} href={`#${game.id}`} onClick={markEnteredFromLobby}>
+    <div className={styles.art}><game.Thumbnail /></div><div className={styles.body}>
+      <ul className={styles.chips} aria-label="Características do jogo">{facts.map(fact=><li key={fact} className={styles.chip}>{fact}</li>)}</ul>
+      <h3 className={styles.cardTitle}>{game.title}</h3><p className={styles.tagline}>{game.tagline}</p><span className={styles.cta}><PlayIcon />{featured?'Entrar':'Jogar'}</span>
     </div>
-  );
+  </a></li>;
 }
 
 /** The arcade's cut-gem mark (same artwork as the favicon). */

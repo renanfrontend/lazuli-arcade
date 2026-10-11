@@ -1,12 +1,33 @@
 # Lazuli Arcade
 
-Oito jogos de estratégia, lógica e ação para celular e desktop, em React e TypeScript. Um lobby leve, jogos independentes que só baixam quando são abertos e progresso salvo no próprio aparelho. Roda como PWA instalável (offline) e também como um único arquivo HTML autocontido.
+Duas experiências atmosféricas e oito clássicos para celular e desktop, em React e TypeScript. Um lobby leve, jogos independentes que só baixam quando são abertos e progresso salvo no próprio aparelho. Roda como PWA instalável (offline) e também como um único arquivo HTML autocontido.
 
 **Jogar:** [renanfrontend.github.io/lazuli-arcade](https://renanfrontend.github.io/lazuli-arcade/)
 
 ![Lobby do arcade, uma jogada do Lazuli Blocks virando moedas e um duelo do Empilha limpando dez peças](docs/preview.png)
 
-## Jogos
+## Experiências em destaque
+
+### Jardim de Luz
+
+Um lago ao luar para desacelerar. Deslize pela água para criar rastros luminosos, ondas e despertar seis flores de lótus.
+
+- Cenário original, pétalas desenhadas em tempo real, vagalumes e partículas com movimento suave.
+- Toque perto de uma flor por um instante para abri-la; seis botões oferecem cultivo pelo teclado.
+- Três cores de luz, harmônicos suaves, pausa e flores salvas no aparelho.
+- Sem cronômetro, derrota ou pressão por pontuação. Depois de abrir as flores, continue desenhando na água.
+
+### Trilha Noturna
+
+Explore uma clareira à noite, desperte seis refúgios luminosos e atravesse o arco de pedra.
+
+- Cenário original, câmera que acompanha a caminhada, névoa, vagalumes e lanterna dinâmica.
+- Toque para definir o destino; arraste para guiá-lo, use setas / WASD ou o botão Seguir próxima luz. Espaço permite correr com fôlego limitado.
+- Suspense: sombras se aproximam, recuam no cone da lanterna e evitam refúgios iluminados. A tensão aumenta perto de uma sombra e cai nos refúgios.
+- Exploração tranquila: a mesma travessia sem perseguição ou derrota por tensão.
+- A saída se abre após despertar as seis luzes. Pausa por botão / Esc e instruções no jogo.
+
+## Clássicos e desafios
 
 ### Reversi
 
@@ -105,6 +126,8 @@ Rebata a bolinha com a raquete e limpe três fases de gemas, com três vidas.
 ## Atualizações e carregamento
 
 O worker usa `skipWaiting` e `clientsClaim` explícitos, pois o registro `script-defer` não ativa esses comportamentos apenas com `registerType: autoUpdate`. O aplicativo verifica atualizações ao abrir e recarrega quando uma nova versão assume o controle. Se uma aba antiga solicitar um chunk removido por um deploy, uma recuperação tenta recarregar uma vez, com limite de 60 segundos para evitar loops. Sem conexão, o erro permanece com opção de tentar novamente; os dados locais não são apagados.
+
+Os cenários originais e os prompts usados estão documentados em [docs/scene-assets.md](docs/scene-assets.md). Os WebP são incluídos no cache offline.
 
 ## Stack
 

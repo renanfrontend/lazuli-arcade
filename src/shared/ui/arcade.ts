@@ -22,6 +22,7 @@ export interface GameDefinition {
   readonly id: string;
   readonly title: string;
   readonly tagline: string;
+  readonly featured?: boolean;
   /** Browser chrome color while the game is open (the status bar on phones). */
   readonly themeColor: ThemeColor;
   /** Lightweight artwork for the lobby card; it must not import the game screen. */

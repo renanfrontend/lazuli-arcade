@@ -4,7 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { defineConfig } from 'vitest/config';
 
 const APP_NAME = 'Lazuli Arcade';
-const APP_DESCRIPTION = 'Oito jogos de estratégia, lógica e ação para celular e desktop: Reversi, 2048 e clássicos de arcade.';
+const APP_DESCRIPTION = 'Experiências atmosféricas de suspense e relaxamento, com Trilha Noturna, Jardim de Luz e clássicos de arcade.';
 const THEME_COLOR = '#dce8f9';
 
 /**
@@ -50,7 +50,7 @@ export default defineConfig(({ mode }) => {
               // Explicit with script-defer: registerType alone does not enable these
               // flags in vite-plugin-pwa v2 unless injectRegister is auto.
               workbox: {
-                globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+                globPatterns: ['**/*.{js,css,html,svg,png,webp,woff2}'],
                 skipWaiting: true,
                 clientsClaim: true,
               },
