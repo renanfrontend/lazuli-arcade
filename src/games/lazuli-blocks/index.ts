@@ -8,6 +8,7 @@ export const lazuliBlocks: GameDefinition = {
   id: 'lazuli-blocks',
   title: 'Lazuli Blocks',
   tagline: 'Encaixe peças no tabuleiro, complete linhas e colunas e transforme gemas em moedas.',
+  featured: true,
   themeColor: { light: '#3a9fe9', dark: '#0c2350' },
   Thumbnail: LazuliThumbnail,
   Screen: lazy(() => import('./ui/LazuliGame')),
