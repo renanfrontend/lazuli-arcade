@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseRoute } from '../navigation';
+import { CATEGORIES, CATEGORY_OF } from '../categories';
 import { findGame, GAMES } from '../registry';
 
 describe('parseRoute', () => {
@@ -40,5 +41,18 @@ describe('registry', () => {
     expect(findGame('puga-salta')?.title).toBe('Puga Salta');
     expect(findGame('missing')).toBeNull();
     expect(findGame(null)).toBeNull();
+  });
+});
+
+describe('lobby categories', () => {
+  it('files every game under a known category', () => {
+    const known = new Set(CATEGORIES.map((category) => category.id));
+    for (const game of GAMES) expect(known.has(CATEGORY_OF[game.id] ?? ('' as never)), game.id).toBe(true);
+  });
+
+  it('spotlights a few games, not the whole catalogue', () => {
+    const featured = GAMES.filter((game) => game.featured);
+    expect(featured.length).toBeGreaterThanOrEqual(3);
+    expect(featured.length).toBeLessThan(GAMES.length / 2);
   });
 });

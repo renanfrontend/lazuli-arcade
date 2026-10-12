@@ -1,8 +1,9 @@
-import { useMemo } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import type { ArcadeServices } from '@shared/application/arcade';
 import type { GameDefinition } from '@shared/ui/arcade';
 import { ExternalIcon, PlayIcon } from '@shared/ui/icons';
 import styles from './Hub.module.css';
+import { CATEGORIES, categoryOf, type Category } from './categories';
 import { markEnteredFromLobby } from './navigation';
 import { OWNER } from './owner';
 
@@ -12,19 +13,40 @@ interface HubProps {
 }
 
 export function Hub({ games, services }: HubProps) {
+  const [filter, setFilter] = useState<Category | 'all'>('all');
   const highlights = useMemo(() => new Map(games.map((game) => [game.id, game.highlights?.(services) ?? []] as const)), [games, services]);
-  const featured = games.filter((game) => game.featured);
-  const classics = games.filter((game) => !game.featured);
+  const factsOf = (game: GameDefinition) => highlights.get(game.id) ?? [];
+  const counts = useMemo(() => new Map(CATEGORIES.map(({ id }) => [id, games.filter((game) => categoryOf(game) === id).length] as const)), [games]);
+  const filtered = filter !== 'all';
+  const spotlight = games.filter((game) => game.featured);
+  const rest = games.filter((game) => !game.featured);
   return <div className={styles.page}><div className={styles.lobby}>
     <header className={styles.header}><BrandMark /><h1 className={styles.title}>Lazuli <span>Arcade</span></h1><span className={styles.headerNote}>Jogue no seu ritmo</span></header>
     <main className={styles.main}>
-      <div className={styles.hero}><p className={styles.eyebrow}>PEQUENOS MUNDOS. OUTRAS SENSAÇÕES.</p><h2>O medo tem<br /><em>uma casa.</em></h2><p className={styles.lede}>Entre na mansão do Último Espetáculo.<br />Encontre as peças. Despiste o palhaço. Fuja.</p></div>
-      <h2 className={styles.sectionTitle}>Você consegue sair?</h2>
-      <ul className={styles.featuredGrid}>{featured.map((game) => <GameCard key={game.id} game={game} facts={highlights.get(game.id) ?? []} featured />)}</ul>
-      <details className={styles.classics}><summary>Mais jogos <span>{classics.length} clássicos e desafios</span></summary><ul className={styles.grid}>{classics.map((game) => <GameCard key={game.id} game={game} facts={highlights.get(game.id) ?? []} />)}</ul></details>
+      <div className={styles.hero}><p className={styles.eyebrow}>{games.length} JOGOS · NO NAVEGADOR · SEM CADASTRO</p><h2>Escolha o seu <em>jogo.</em></h2><p className={styles.lede}>Terror, puzzles, estratégia, memória e ação.<br />Role para ver todos ou filtre por tipo.</p></div>
+      <nav className={styles.filters} aria-label="Filtrar jogos por tipo">
+        <button type="button" className={styles.filter} aria-pressed={!filtered} onClick={() => { setFilter('all'); }}>Todos <span>{games.length}</span></button>
+        {CATEGORIES.map(({ id, label }) => <button key={id} type="button" className={styles.filter} aria-pressed={filter === id} onClick={() => { setFilter(id); }}>{label} <span>{counts.get(id) ?? 0}</span></button>)}
+      </nav>
+      {filtered ? <Section title={CATEGORIES.find((c) => c.id === filter)?.label ?? ''} blurb={CATEGORIES.find((c) => c.id === filter)?.blurb ?? ''}>
+        {games.filter((game) => categoryOf(game) === filter).map((game) => <GameCard key={game.id} game={game} facts={factsOf(game)} />)}
+      </Section> : <>
+        <section aria-labelledby="spot"><h2 id="spot" className={styles.sectionTitle}>Em destaque</h2>
+          <ul className={styles.featuredGrid}>{spotlight.slice(0, 1).map((game) => <GameCard key={game.id} game={game} facts={factsOf(game)} featured />)}</ul>
+          <ul className={`${styles.grid} ${styles.pair}`}>{spotlight.slice(1).map((game) => <GameCard key={game.id} game={game} facts={factsOf(game)} />)}</ul></section>
+        {CATEGORIES.map(({ id, label, blurb }) => {
+          const list = rest.filter((game) => categoryOf(game) === id);
+          return list.length === 0 ? null : <Section key={id} title={label} blurb={blurb}>{list.map((game) => <GameCard key={game.id} game={game} facts={factsOf(game)} />)}</Section>;
+        })}
+      </>}
     </main>
     <footer className={styles.footer}><p>© {new Date().getFullYear()} {OWNER.name}</p><a className={styles.link} href={OWNER.site} target="_blank" rel="noopener">{OWNER.siteLabel}<ExternalIcon className={styles.linkIcon} /></a></footer>
   </div></div>;
+}
+
+function Section({ title, blurb, children }: { readonly title: string; readonly blurb: string; readonly children: ReactNode }) {
+  const id = `sec-${title.toLowerCase()}`;
+  return <section aria-labelledby={id} className={styles.section}><h2 id={id} className={styles.sectionTitle}>{title}<span>{blurb}</span></h2><ul className={styles.grid}>{children}</ul></section>;
 }
 function GameCard({game,facts,featured=false}:{readonly game:GameDefinition;readonly facts:readonly string[];readonly featured?:boolean}) {
   return <li className={styles.item}><a className={styles.card} data-featured={featured} href={`#${game.id}`} onClick={markEnteredFromLobby}>

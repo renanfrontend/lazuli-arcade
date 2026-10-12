@@ -8,6 +8,7 @@ export const empilha: GameDefinition = {
   id: 'empilha',
   title: 'Empilha',
   tagline: 'Duelo de pilhas: junte símbolos iguais, limpe de 10 em 10 e chegue a 250 antes do oponente.',
+  featured: true,
   themeColor: { light: '#f2f5fa', dark: '#0d1422' },
   Thumbnail: EmpilhaThumbnail,
   Screen: lazy(() => import('./ui/EmpilhaGame')),
