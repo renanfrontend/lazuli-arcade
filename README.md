@@ -1,6 +1,6 @@
 # Lazuli Arcade
 
-Terror em primeira pessoa e onze jogos para celular e desktop, em React e TypeScript. Um lobby leve, jogos independentes que só baixam quando são abertos e progresso salvo no próprio aparelho. Roda como PWA instalável (offline) e também como um único arquivo HTML autocontido.
+Terror em primeira pessoa e doze jogos para celular e desktop, em React e TypeScript. Um lobby leve, jogos independentes que só baixam quando são abertos e progresso salvo no próprio aparelho. Roda como PWA instalável (offline) e também como um único arquivo HTML autocontido.
 
 **Jogar:** [renanfrontend.github.io/lazuli-arcade](https://renanfrontend.github.io/lazuli-arcade/)
 
@@ -101,6 +101,10 @@ Rebata a bolinha com a raquete e limpe três fases de gemas, com três vidas.
 ### Memória, Dobra e Frascos
 
 Três jogos curtos que reaproveitam o elenco: **Memória** (pares de personagens), **Dobra** (deslize e junte, estilo 2048, cada nível vira um personagem) e **Frascos** (separe as cores; todo puzzle é gerado com solução garantida por busca).
+
+### Manor Escape
+
+Escape room vitoriano em seis cômodos e onze enigmas, publicado como app próprio ([repositório](https://github.com/renanfrontend/manor-escape)). O arcade o hospeda num `iframe` para ele aparecer ao lado dos outros jogos; há também o link para abrir em nova aba.
 
 ### Controles
 

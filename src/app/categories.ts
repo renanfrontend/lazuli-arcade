@@ -8,6 +8,7 @@ export const CATEGORY_OF: Readonly<Record<string, Category>> = {
   'lazuli-blocks': 'puzzle',
   '2048': 'puzzle',
   dobra: 'puzzle',
+  'manor-escape': 'puzzle',
   frascos: 'puzzle',
   'quebra-gemas': 'puzzle',
   reversi: 'estrategia',
